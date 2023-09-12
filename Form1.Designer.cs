@@ -29,40 +29,43 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
-            pictureBox1 = new PictureBox();
+            pictureBoxSource = new PictureBox();
             button1 = new Button();
-            pictureBox2 = new PictureBox();
-            pictureBox3 = new PictureBox();
-            pictureBox4 = new PictureBox();
-            checkBoxInverse = new CheckBox();
-            pictureBox5 = new PictureBox();
-            pictureBox6 = new PictureBox();
-            pictureBox7 = new PictureBox();
+            pictureBoxAprox = new PictureBox();
+            pictureBoxAtariAprox = new PictureBox();
+            pictureBoxPalette = new PictureBox();
+            pictureBoxAproxInverse = new PictureBox();
+            pictureBoxAtariAproxInverse = new PictureBox();
+            pictureBoxAtariMix = new PictureBox();
             button2 = new Button();
-            pictureBox8 = new PictureBox();
+            pictureBoxCharMask = new PictureBox();
             checkBoxSimpleAvg = new CheckBox();
             comboBoxDither = new ComboBox();
             checkBoxUseDither = new CheckBox();
             comboBoxDistance = new ComboBox();
             label1 = new Label();
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox3).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox4).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox5).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox6).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox7).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox8).BeginInit();
+            buttonOpen = new Button();
+            openFileDialog1 = new OpenFileDialog();
+            flowLayoutPanel1 = new FlowLayoutPanel();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxSource).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAprox).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxPalette).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxAproxInverse).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAproxInverse).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxAtariMix).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxCharMask).BeginInit();
+            flowLayoutPanel1.SuspendLayout();
             SuspendLayout();
             // 
-            // pictureBox1
+            // pictureBoxSource
             // 
-            pictureBox1.Image = (Image)resources.GetObject("pictureBox1.Image");
-            pictureBox1.Location = new Point(12, 12);
-            pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(160, 160);
-            pictureBox1.TabIndex = 0;
-            pictureBox1.TabStop = false;
+            pictureBoxSource.Image = (Image)resources.GetObject("pictureBoxSource.Image");
+            pictureBoxSource.Location = new Point(12, 12);
+            pictureBoxSource.Name = "pictureBoxSource";
+            pictureBoxSource.Size = new Size(128, 192);
+            pictureBoxSource.TabIndex = 0;
+            pictureBoxSource.TabStop = false;
             // 
             // button1
             // 
@@ -74,64 +77,53 @@
             button1.UseVisualStyleBackColor = true;
             button1.Click += button1_Click;
             // 
-            // pictureBox2
+            // pictureBoxAprox
             // 
-            pictureBox2.Location = new Point(370, 12);
-            pictureBox2.Name = "pictureBox2";
-            pictureBox2.Size = new Size(256, 136);
-            pictureBox2.TabIndex = 2;
-            pictureBox2.TabStop = false;
+            pictureBoxAprox.Location = new Point(3, 3);
+            pictureBoxAprox.Name = "pictureBoxAprox";
+            pictureBoxAprox.Size = new Size(256, 136);
+            pictureBoxAprox.TabIndex = 2;
+            pictureBoxAprox.TabStop = false;
             // 
-            // pictureBox3
+            // pictureBoxAtariAprox
             // 
-            pictureBox3.Location = new Point(370, 154);
-            pictureBox3.Name = "pictureBox3";
-            pictureBox3.Size = new Size(256, 136);
-            pictureBox3.TabIndex = 3;
-            pictureBox3.TabStop = false;
+            pictureBoxAtariAprox.Location = new Point(3, 145);
+            pictureBoxAtariAprox.Name = "pictureBoxAtariAprox";
+            pictureBoxAtariAprox.Size = new Size(256, 136);
+            pictureBoxAtariAprox.TabIndex = 3;
+            pictureBoxAtariAprox.TabStop = false;
             // 
-            // pictureBox4
+            // pictureBoxPalette
             // 
-            pictureBox4.Location = new Point(12, 240);
-            pictureBox4.Name = "pictureBox4";
-            pictureBox4.Size = new Size(256, 200);
-            pictureBox4.TabIndex = 4;
-            pictureBox4.TabStop = false;
+            pictureBoxPalette.Location = new Point(12, 240);
+            pictureBoxPalette.Name = "pictureBoxPalette";
+            pictureBoxPalette.Size = new Size(256, 192);
+            pictureBoxPalette.TabIndex = 4;
+            pictureBoxPalette.TabStop = false;
             // 
-            // checkBoxInverse
+            // pictureBoxAproxInverse
             // 
-            checkBoxInverse.AutoSize = true;
-            checkBoxInverse.Location = new Point(178, 12);
-            checkBoxInverse.Name = "checkBoxInverse";
-            checkBoxInverse.Size = new Size(63, 19);
-            checkBoxInverse.TabIndex = 5;
-            checkBoxInverse.Text = "inverse";
-            checkBoxInverse.UseVisualStyleBackColor = true;
-            checkBoxInverse.CheckedChanged += checkBox1_CheckedChanged;
+            pictureBoxAproxInverse.Location = new Point(265, 3);
+            pictureBoxAproxInverse.Name = "pictureBoxAproxInverse";
+            pictureBoxAproxInverse.Size = new Size(256, 136);
+            pictureBoxAproxInverse.TabIndex = 6;
+            pictureBoxAproxInverse.TabStop = false;
             // 
-            // pictureBox5
+            // pictureBoxAtariAproxInverse
             // 
-            pictureBox5.Location = new Point(632, 12);
-            pictureBox5.Name = "pictureBox5";
-            pictureBox5.Size = new Size(256, 136);
-            pictureBox5.TabIndex = 6;
-            pictureBox5.TabStop = false;
+            pictureBoxAtariAproxInverse.Location = new Point(265, 145);
+            pictureBoxAtariAproxInverse.Name = "pictureBoxAtariAproxInverse";
+            pictureBoxAtariAproxInverse.Size = new Size(256, 136);
+            pictureBoxAtariAproxInverse.TabIndex = 7;
+            pictureBoxAtariAproxInverse.TabStop = false;
             // 
-            // pictureBox6
+            // pictureBoxAtariMix
             // 
-            pictureBox6.Location = new Point(632, 154);
-            pictureBox6.Name = "pictureBox6";
-            pictureBox6.Size = new Size(256, 136);
-            pictureBox6.TabIndex = 7;
-            pictureBox6.TabStop = false;
-            // 
-            // pictureBox7
-            // 
-            pictureBox7.Location = new Point(632, 296);
-            pictureBox7.Name = "pictureBox7";
-            pictureBox7.Size = new Size(256, 136);
-            pictureBox7.TabIndex = 8;
-            pictureBox7.TabStop = false;
+            pictureBoxAtariMix.Location = new Point(265, 287);
+            pictureBoxAtariMix.Name = "pictureBoxAtariMix";
+            pictureBoxAtariMix.Size = new Size(256, 136);
+            pictureBoxAtariMix.TabIndex = 8;
+            pictureBoxAtariMix.TabStop = false;
             // 
             // button2
             // 
@@ -143,20 +135,20 @@
             button2.UseVisualStyleBackColor = true;
             button2.Click += button2_Click;
             // 
-            // pictureBox8
+            // pictureBoxCharMask
             // 
-            pictureBox8.Location = new Point(370, 296);
-            pictureBox8.Name = "pictureBox8";
-            pictureBox8.Size = new Size(256, 136);
-            pictureBox8.TabIndex = 10;
-            pictureBox8.TabStop = false;
+            pictureBoxCharMask.Location = new Point(3, 287);
+            pictureBoxCharMask.Name = "pictureBoxCharMask";
+            pictureBoxCharMask.Size = new Size(256, 136);
+            pictureBoxCharMask.TabIndex = 10;
+            pictureBoxCharMask.TabStop = false;
             // 
             // checkBoxSimpleAvg
             // 
             checkBoxSimpleAvg.AutoSize = true;
             checkBoxSimpleAvg.Checked = true;
             checkBoxSimpleAvg.CheckState = CheckState.Checked;
-            checkBoxSimpleAvg.Location = new Point(178, 37);
+            checkBoxSimpleAvg.Location = new Point(171, 12);
             checkBoxSimpleAvg.Name = "checkBoxSimpleAvg";
             checkBoxSimpleAvg.Size = new Size(117, 19);
             checkBoxSimpleAvg.TabIndex = 11;
@@ -169,7 +161,7 @@
             comboBoxDither.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxDither.FormattingEnabled = true;
             comboBoxDither.Items.AddRange(new object[] { "chess", "sierra", "F-S" });
-            comboBoxDither.Location = new Point(176, 87);
+            comboBoxDither.Location = new Point(171, 62);
             comboBoxDither.Name = "comboBoxDither";
             comboBoxDither.Size = new Size(96, 23);
             comboBoxDither.TabIndex = 13;
@@ -179,7 +171,7 @@
             checkBoxUseDither.AutoSize = true;
             checkBoxUseDither.Checked = true;
             checkBoxUseDither.CheckState = CheckState.Checked;
-            checkBoxUseDither.Location = new Point(176, 62);
+            checkBoxUseDither.Location = new Point(171, 37);
             checkBoxUseDither.Name = "checkBoxUseDither";
             checkBoxUseDither.Size = new Size(96, 19);
             checkBoxUseDither.TabIndex = 14;
@@ -192,7 +184,7 @@
             comboBoxDistance.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxDistance.FormattingEnabled = true;
             comboBoxDistance.Items.AddRange(new object[] { "difference", "RGB euclid", "YUV euclid" });
-            comboBoxDistance.Location = new Point(176, 149);
+            comboBoxDistance.Location = new Point(171, 124);
             comboBoxDistance.Name = "comboBoxDistance";
             comboBoxDistance.Size = new Size(96, 23);
             comboBoxDistance.TabIndex = 15;
@@ -200,65 +192,91 @@
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(172, 123);
+            label1.Location = new Point(167, 98);
             label1.Name = "label1";
             label1.Size = new Size(100, 15);
             label1.TabIndex = 16;
             label1.Text = "Distance method:";
             // 
+            // buttonOpen
+            // 
+            buttonOpen.Location = new Point(12, 210);
+            buttonOpen.Name = "buttonOpen";
+            buttonOpen.Size = new Size(75, 23);
+            buttonOpen.TabIndex = 17;
+            buttonOpen.Text = "Open";
+            buttonOpen.UseVisualStyleBackColor = true;
+            buttonOpen.Click += buttonOpen_Click;
+            // 
+            // openFileDialog1
+            // 
+            openFileDialog1.FileName = "openFileDialog1";
+            // 
+            // flowLayoutPanel1
+            // 
+            flowLayoutPanel1.Controls.Add(pictureBoxAprox);
+            flowLayoutPanel1.Controls.Add(pictureBoxAproxInverse);
+            flowLayoutPanel1.Controls.Add(pictureBoxAtariAprox);
+            flowLayoutPanel1.Controls.Add(pictureBoxAtariAproxInverse);
+            flowLayoutPanel1.Controls.Add(pictureBoxCharMask);
+            flowLayoutPanel1.Controls.Add(pictureBoxAtariMix);
+            flowLayoutPanel1.Dock = DockStyle.Right;
+            flowLayoutPanel1.Location = new Point(383, 0);
+            flowLayoutPanel1.Name = "flowLayoutPanel1";
+            flowLayoutPanel1.Size = new Size(536, 536);
+            flowLayoutPanel1.TabIndex = 18;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(900, 536);
+            ClientSize = new Size(919, 536);
+            Controls.Add(flowLayoutPanel1);
+            Controls.Add(buttonOpen);
             Controls.Add(label1);
             Controls.Add(comboBoxDistance);
             Controls.Add(checkBoxUseDither);
             Controls.Add(comboBoxDither);
             Controls.Add(checkBoxSimpleAvg);
-            Controls.Add(pictureBox8);
             Controls.Add(button2);
-            Controls.Add(pictureBox7);
-            Controls.Add(pictureBox6);
-            Controls.Add(pictureBox5);
-            Controls.Add(checkBoxInverse);
-            Controls.Add(pictureBox4);
-            Controls.Add(pictureBox3);
-            Controls.Add(pictureBox2);
+            Controls.Add(pictureBoxPalette);
             Controls.Add(button1);
-            Controls.Add(pictureBox1);
+            Controls.Add(pictureBoxSource);
             Name = "Form1";
             Text = "AlterLinePictureAproximator";
             Load += Form1_Load;
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox2).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox3).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox4).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox5).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox6).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox7).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox8).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxSource).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAprox).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxPalette).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxAproxInverse).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAproxInverse).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxAtariMix).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxCharMask).EndInit();
+            flowLayoutPanel1.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
         }
 
         #endregion
 
-        private PictureBox pictureBox1;
+        private PictureBox pictureBoxSource;
         private Button button1;
-        private PictureBox pictureBox2;
-        private PictureBox pictureBox3;
-        private PictureBox pictureBox4;
-        private CheckBox checkBoxInverse;
-        private PictureBox pictureBox5;
-        private PictureBox pictureBox6;
-        private PictureBox pictureBox7;
+        private PictureBox pictureBoxAprox;
+        private PictureBox pictureBoxAtariAprox;
+        private PictureBox pictureBoxPalette;
+        private PictureBox pictureBoxAproxInverse;
+        private PictureBox pictureBoxAtariAproxInverse;
+        private PictureBox pictureBoxAtariMix;
         private Button button2;
-        private PictureBox pictureBox8;
+        private PictureBox pictureBoxCharMask;
         private CheckBox checkBoxSimpleAvg;
         private ComboBox comboBoxDither;
         private CheckBox checkBoxUseDither;
         private ComboBox comboBoxDistance;
         private Label label1;
+        private Button buttonOpen;
+        private OpenFileDialog openFileDialog1;
+        private FlowLayoutPanel flowLayoutPanel1;
     }
 }

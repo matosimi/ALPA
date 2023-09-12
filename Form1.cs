@@ -16,11 +16,11 @@ namespace AlterLinePictureAproximator
         //my colors:    1e,16,26,76,00
         //              14,16,48,b6,00
         public float[] atariPalLab = new float[256 * 3];
-        public Color[] customColors;
+        public Color[,] customColors;
         public byte[] line0 = new byte[5] { 0x1e, 0x16, 0x26, 0x76, 0x00 };
         public byte[] line1 = new byte[5] { 0x14, 0x16, 0x48, 0xb6, 0x00 };
-        public Color[] cline0 = new Color[4];
-        public Color[] cline1 = new Color[4];
+        public Color[,] cline0 = new Color[4, 2];
+        public Color[,] cline1 = new Color[4, 2];
         public int[,,] diff_matrix;
 
         private void Form1_Load(object sender, EventArgs e)
@@ -29,7 +29,9 @@ namespace AlterLinePictureAproximator
             Vector4 lab = Conversion.RGBToLab(rgb);
             Vector4 rgb2 = Conversion.LabToRGB(lab);*/
             LoadPalette();
-            CreatePal(false, false);
+            CreatePal(false);
+            comboBoxDistance.SelectedIndex = 0;
+            comboBoxDither.SelectedIndex = 0;
         }
 
         private Color AverageColor(Color c1, Color c2, bool simple)
@@ -62,30 +64,33 @@ namespace AlterLinePictureAproximator
             return Color.FromArgb(r, g, b);
         }
 
-        private void CreatePal(bool inverse, bool simple)
+        private void CreatePal(bool simple)
         {
             Bitmap p = new Bitmap(128, 200);
             Graphics g = Graphics.FromImage(p);
-            customColors = new Color[16];
-            List<byte> l0 = line0.ToList();
-            List<byte> l1 = line1.ToList();
+            customColors = new Color[16,2];
 
-            l0.RemoveAt(3 - (inverse ? 1 : 0));
-            l1.RemoveAt(3 - (inverse ? 1 : 0));
-
-            for (int a = 0; a < 4; a++)
+            for (int z = 0; z < 2; z++)
             {
-                for (int b = 0; b < 4; b++)
+                List<byte> l0 = line0.ToList();
+                List<byte> l1 = line1.ToList();
+                l0.RemoveAt(3 - z);
+                l1.RemoveAt(3 - z);
+
+                for (int a = 0; a < 4; a++)
                 {
-                    customColors[a * 4 + b] = AverageColor(l0[a], l1[b], simple);
-                    g.FillRectangle(new SolidBrush(customColors[a * 4 + b]), new Rectangle(b * 32, a * 32, 32, 32));
+                    for (int b = 0; b < 4; b++)
+                    {
+                        customColors[a * 4 + b,z] = AverageColor(l0[a], l1[b], simple);
+                        g.FillRectangle(new SolidBrush(customColors[a * 4 + b,z]), new Rectangle(b * 16 + (65 * z), a * 16, 16, 16));
+                    }
+                    cline0[a, z] = AverageColor(l0[a], l0[a], simple);
+                    cline1[a, z] = AverageColor(l1[a], l1[a], simple);
+                    g.FillRectangle(new SolidBrush(cline0[a, z]), new Rectangle(a * 16 + 65 * z, 65, 16, 16));
+                    g.FillRectangle(new SolidBrush(cline1[a, z]), new Rectangle(a * 16 + 65 * z, 65 + 16, 16, 16));
                 }
-                cline0[a] = AverageColor(l0[a], l0[a], simple);
-                cline1[a] = AverageColor(l1[a], l1[a], simple);
-                g.FillRectangle(new SolidBrush(cline0[a]), new Rectangle(a * 32, 128 + 8, 32, 32));
-                g.FillRectangle(new SolidBrush(cline1[a]), new Rectangle(a * 32, 128 + 32 + 8, 32, 32));
             }
-            pictureBox4.Image = p;
+            pictureBoxPalette.Image = p;
         }
         private void LoadPalette()
         {
@@ -109,7 +114,7 @@ namespace AlterLinePictureAproximator
         }
         private void DoConvert(bool simple, int distanceMethod, bool dither, int ditherMethod = 0)
         {
-            Bitmap b = (Bitmap)pictureBox1.Image;
+            Bitmap b = (Bitmap)pictureBoxSource.Image;
             Bitmap t = new Bitmap(b.Width * 2, b.Height);
             Bitmap a = new Bitmap(b.Width * 2, b.Height);
             int[,,] delta_matrix = new int[b.Width + 1, b.Height + 1, 3];
@@ -117,19 +122,18 @@ namespace AlterLinePictureAproximator
 
             for (int z = 0; z < 2; z++)
             {
-                CreatePal(z == 1, simple);
                 delta_matrix.Initialize();
-                for (int y = 0; y < pictureBox1.Image.Height / 2; y++)
+                for (int y = 0; y < pictureBoxSource.Image.Height / 2; y++)
                 {
-                    for (int x = 1; x < pictureBox1.Image.Width - 1; x++)
+                    for (int x = 1; x < pictureBoxSource.Image.Width - 1; x++)
                     {
                         Color src = AverageColor(b.GetPixel(x, y * 2), b.GetPixel(x, y * 2 + 1), simple);
                         int[] channel = new int[3]{src.R + delta_matrix[x,y,0],
                                                src.G + delta_matrix[x,y,1],
                                                src.B + delta_matrix[x,y,2]};
                         Color srcPlusDelta = Color.FromArgb(Clamp256(channel[0]), Clamp256(channel[1]), Clamp256(channel[2]));
-                        int index = FindCustomClosest2(dither ? srcPlusDelta : src, distanceMethod);   //use "src" to disable error diffusion
-                        diff_matrix[x, y, z] = (int)Distance(srcPlusDelta, customColors[index], distanceMethod);
+                        int index = FindCustomClosest2(dither ? srcPlusDelta : src, distanceMethod, z == 0 ? false : true);   //use "src" to disable error diffusion
+                        diff_matrix[x, y, z] = (int)Distance(srcPlusDelta, customColors[index,z], distanceMethod);
                         // 1/2*|# 1|
                         //     |1 0|
 
@@ -138,9 +142,9 @@ namespace AlterLinePictureAproximator
 
                         // 1/16*|- # 7|
                         //      |3 5 1|
-                        int[] delta = new int[3] { src.R - customColors[index].R + (channel[0] - Clamp256(channel[0])),
-                                               src.G - customColors[index].G + (channel[1] - Clamp256(channel[1])),
-                                               src.B - customColors[index].B + (channel[2] - Clamp256(channel[2]))};
+                        int[] delta = new int[3] { src.R - customColors[index,z].R + (channel[0] - Clamp256(channel[0])),
+                                               src.G - customColors[index,z].G + (channel[1] - Clamp256(channel[1])),
+                                               src.B - customColors[index,z].B + (channel[2] - Clamp256(channel[2]))};
                         for (int i = 0; i < 3; i++)
                         {
                             switch (ditherMethod)   //chess, sierra, F-S
@@ -169,29 +173,33 @@ namespace AlterLinePictureAproximator
 
                         }
 
-                        Color p1 = cline0[index / 4];
-                        Color p2 = cline1[index % 4];
+                        Color p1 = cline0[index / 4, z];
+                        Color p2 = cline1[index % 4, z];
 
                         a.SetPixel(x * 2, y * 2, p1);
                         a.SetPixel(x * 2 + 1, y * 2, p1);
                         a.SetPixel(x * 2, y * 2 + 1, p2);
                         a.SetPixel(x * 2 + 1, y * 2 + 1, p2);
 
-                        t.SetPixel(x * 2, y * 2, customColors[index]);
-                        t.SetPixel(x * 2 + 1, y * 2, customColors[index]);
-                        t.SetPixel(x * 2, y * 2 + 1, customColors[index]);
-                        t.SetPixel(x * 2 + 1, y * 2 + 1, customColors[index]);
+                        t.SetPixel(x * 2, y * 2, customColors[index,z]);
+                        t.SetPixel(x * 2 + 1, y * 2, customColors[index,z]);
+                        t.SetPixel(x * 2, y * 2 + 1, customColors[index,z]);
+                        t.SetPixel(x * 2 + 1, y * 2 + 1, customColors[index,z]);
                     }
                 }
                 if (z == 0)
                 {
-                    pictureBox2.Image = new Bitmap(t);
-                    pictureBox3.Image = new Bitmap(a);
+                    pictureBoxAprox.Image = new Bitmap(t);
+                    pictureBoxAprox.Size = t.Size;
+                    pictureBoxAtariAprox.Image = new Bitmap(a);
+                    pictureBoxAtariAprox.Size = a.Size;
                 }
                 else
                 {
-                    pictureBox5.Image = new Bitmap(t);
-                    pictureBox6.Image = new Bitmap(a);
+                    pictureBoxAproxInverse.Image = new Bitmap(t);
+                    pictureBoxAproxInverse.Size = t.Size;
+                    pictureBoxAtariAproxInverse.Image = new Bitmap(a);
+                    pictureBoxAtariAproxInverse.Size = a.Size;
                 }
             }
         }
@@ -216,13 +224,13 @@ namespace AlterLinePictureAproximator
             }
             return dist;
         }
-        private int FindCustomClosest2(Color color, int distanceMethod)
+        private int FindCustomClosest2(Color color, int distanceMethod, bool inverse)
         {
             int index = 0;
             double maxdist = double.MaxValue;
             for (int i = 0; i < 16; i++)
             {
-                double dist = Distance(color, customColors[i], distanceMethod);
+                double dist = Distance(color, customColors[i,inverse ? 1 : 0], distanceMethod);
                 if (dist < maxdist)
                 {
                     maxdist = dist;
@@ -278,7 +286,7 @@ namespace AlterLinePictureAproximator
 
         private void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
-            CreatePal(checkBoxInverse.Checked, checkBoxSimpleAvg.Checked);
+
         }
 
         private void button2_Click(object sender, EventArgs e)
@@ -288,13 +296,13 @@ namespace AlterLinePictureAproximator
 
         private void MixIt()
         {
-            Bitmap b = new Bitmap(pictureBox3.Image); //non inverse
-            Bitmap m = new Bitmap(pictureBox3.Image);
+            Bitmap b = new Bitmap(pictureBoxAtariAprox.Image); //non inverse
+            Bitmap m = new Bitmap(pictureBoxAtariAprox.Image);
             Graphics g = Graphics.FromImage(b);
             Graphics gm = Graphics.FromImage(m);
-
-            double[,,] chardiff = new double[32, 16, 2];
-            for (int y = 0; y < 16; y++)
+            int charHeight = b.Height / 8;
+            double[,,] chardiff = new double[32, charHeight, 2];
+            for (int y = 0; y < charHeight; y++)
                 for (int x = 0; x < 32; x++)
                 {
                     for (int z = 0; z < 2; z++)
@@ -303,7 +311,7 @@ namespace AlterLinePictureAproximator
                                 chardiff[x, y, z] += Math.Pow(diff_matrix[x * 4 + cx, y * 4 + cy, z], 2);
                     if (chardiff[x, y, 0] > chardiff[x, y, 1])
                     {
-                        g.DrawImage(pictureBox6.Image/*inverse one*/, x * 8, y * 8, new Rectangle(x * 8, y * 8, 8, 8), GraphicsUnit.Pixel);
+                        g.DrawImage(pictureBoxAtariAproxInverse.Image, x * 8, y * 8, new Rectangle(x * 8, y * 8, 8, 8), GraphicsUnit.Pixel);
                         gm.FillRectangle(new SolidBrush(Color.Black), new Rectangle(x * 8, y * 8, 8, 8));
                     }
                     else
@@ -311,18 +319,29 @@ namespace AlterLinePictureAproximator
                         gm.FillRectangle(new SolidBrush(Color.White), new Rectangle(x * 8, y * 8, 8, 8));
                     }
                 }
-            pictureBox7.Image = b;
-            pictureBox8.Image = m;
+            pictureBoxAtariMix.Image = b;
+            pictureBoxAtariMix.Size = b.Size;
+            pictureBoxCharMask.Image = m;
+            pictureBoxCharMask.Size = m.Size;
         }
 
         private void checkBoxSimple_CheckedChanged(object sender, EventArgs e)
         {
-            CreatePal(checkBoxInverse.Checked, checkBoxSimpleAvg.Checked);
+            CreatePal(checkBoxSimpleAvg.Checked);
         }
 
         private void checkBoxUseDither_CheckedChanged(object sender, EventArgs e)
         {
             comboBoxDither.Enabled = checkBoxUseDither.Checked;
+        }
+
+        private void buttonOpen_Click(object sender, EventArgs e)
+        {
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                pictureBoxSource.Image = new Bitmap(Bitmap.FromFile(openFileDialog1.FileName));
+                CreatePal(checkBoxSimpleAvg.Checked);
+            }
         }
     }
 }
