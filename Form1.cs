@@ -123,7 +123,7 @@ namespace AlterLinePictureAproximator
             Bitmap a = new Bitmap(b.Width * 2, b.Height);
             int[,,] delta_matrix = new int[b.Width + 1, b.Height + 1, 3];
             diff_matrix = new int[b.Width + 1, b.Height + 1, 2];
-            bitmap = new int[b.Width, b.Height,2];
+            bitmap = new int[b.Width, b.Height, 2];
             for (int z = 0; z < 2; z++)
             {
                 delta_matrix.Initialize();
@@ -348,7 +348,28 @@ namespace AlterLinePictureAproximator
         {
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
-                pictureBoxSource.Image = new Bitmap(Bitmap.FromFile(openFileDialog1.FileName));
+                if (!checkBoxAutoscale.Checked)
+                {
+                    pictureBoxSource.Image = new Bitmap(Bitmap.FromFile(openFileDialog1.FileName));
+                }
+                else
+                {
+                    Bitmap bmp = (Bitmap)Bitmap.FromFile(openFileDialog1.FileName);
+                    float ratio = bmp.Width / 256f;
+                    int height = (int)(bmp.Height / ratio);
+                    Bitmap scaled = new Bitmap(256, 192);
+                    Graphics g = Graphics.FromImage(scaled);
+                    g.DrawImage(bmp, new Rectangle(0, 0, 256, height));
+
+                    Bitmap input = new Bitmap(128, 192);
+                    g = Graphics.FromImage(input);
+                    g.DrawImage(scaled, new Rectangle(0, 0, 128, 192));
+                    pictureBoxSource.Image = input;
+                    g.Dispose();
+                    bmp.Dispose();
+                    scaled.Dispose();
+
+                }
                 CreatePal(checkBoxSimpleAvg.Checked);
             }
         }
@@ -388,6 +409,10 @@ namespace AlterLinePictureAproximator
                 for (int x = 0; x < 32; x++)
                     vram[x + y * 32] = (byte)(x + (y % 4) * 32 + 128 * mask[x, y]);
 
+            for (int y = height; y < 24; y++)
+                for (int x = 0; x < 32; x++)
+                    vram[x + y * 32] = (byte)(x + (y % 4) * 32);
+
             int pointer = 0;
             byte[] remap = { 1, 2, 3, 0 };
             byte[] charsets = new byte[32 * 24 * 8];
@@ -400,14 +425,30 @@ namespace AlterLinePictureAproximator
                         byte multiplyer = 64;
                         for (int b = 0; b < 4; b++)
                         {
-                            charsets[pointer] += (byte)(multiplyer * remap[bitmap[x * 4+b, y * 8+i, picnum]]);
+                            charsets[pointer] += (byte)(multiplyer * remap[bitmap[x * 4 + b, y * 8 + i, picnum]]);
                             multiplyer >>= 2;
                         }
+                        if (x == 0) charsets[pointer] &= 0x3f;
+                        else if (x == 31)
+                            charsets[pointer] &= 0xfc;
                         pointer++;
                     }
                 }
+
+            byte[] colors = new byte[8] { line0[1], line0[4], line0[0], line1[0], line0[2], line1[2], line0[3], line1[3] };
+
             File.WriteAllBytes("vram.dat", vram);
             File.WriteAllBytes("font.fnt", charsets);
+            File.WriteAllBytes("colors.dat", colors);
+
+            //012c $4000 font
+            //$1930 $6000 vram
+            //$1c30 colors
+            byte[] xex = File.ReadAllBytes("alterline2.xex");
+            Array.Copy(charsets, 0, xex, 0x012c, charsets.Length);
+            Array.Copy(vram, 0, xex, 0x1930, vram.Length);
+            Array.Copy(colors, 0, xex, 0x1c30, colors.Length);
+            File.WriteAllBytes("output.xex", xex);
         }
 
         private void buttonXex_Click(object sender, EventArgs e)

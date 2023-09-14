@@ -1,0 +1,220 @@
+; ********* MATOSIMI MACROS **********
+; 24.08.2020
+; 26.10.2021 - (corrected/fixed) a_out macro with < > interval
+;	   - replaced named labels with underscored
+; 18.01.2023 - added LMS macro
+
+;add 8bit number to 16bit number
+.macro	add16 ' '
+	lda :1
+	add :2
+	bcc _
+	inc :2+1
+_	sta :2
+.endm
+
+	 
+.macro	sub16 ' '
+	lda :2
+	sub :1
+	bcs _
+	dec :2+1
+_	sta :2
+.endm
+
+;add two 16bit numbers, store result in latter
+.macro	add1616 ' '
+	lda :1
+	add :2
+	sta :2
+	lda :1+1
+	adc :2+1
+	sta :2+1
+.endm
+
+;untested:
+.macro	sub1616 ' '
+	lda :1
+	sub :2
+	sta :2
+	lda :1+1
+	sbc :2+1
+	sta :2+1
+.endm
+
+
+;adds (or subs) constant -128 to 127
+.macro	add16sign ' '
+	lda :1
+	bmi __
+	add :2
+	bcc _
+	inc :2+1
+	jmp _
+
+__	;eor #$ff ;inverse (to get positive value)
+
+	add :2
+	bcs _
+	dec :2+1
+_	sta :2
+.endm
+
+.macro	cmp16
+	lda :1+1
+	cmp :2+1
+	bne _
+	lda :1
+	cmp :2
+_
+.endm
+
+.macro	x_lt
+	cpx :1
+	jcc :2
+.endm
+
+.macro	x_ge
+	cpx :1
+	jcs :2
+.endm
+
+.macro	y_lt
+	cpy :1
+	jcc :2
+.endm
+
+.macro	y_ge
+	cpy :1
+	jcs :2
+.endm
+
+;check if A stands out of interval < >
+
+.macro	a_out ' '
+	a_lt :1 :3
+	a_ge :2 :3
+.print 'Warning: Deprecated macro a_out used. Use corrected a_out2.'
+.endm
+
+.macro	a_out2 ' '
+	a_lt :1 :3
+	cmp :2
+	beq _
+	jcs :3
+_
+.endm
+
+;checks if A stands inside interval < >
+.macro	a_in ' '
+	a_lt :1 _
+	a_lt :2 :3
+	jeq :3
+_
+.endm
+
+;compares A with operand and returnes lower value of those two in A
+.macro	a_min ' '
+	a_ge :1 _
+	bcc __ ;jmp __
+_	lda :1
+__	
+.endm
+
+;compares A with operand and returns higher value of those two in A
+.macro	a_max ' '
+	a_lt :1 _
+	bcs __ ;jmp __
+_	lda :1
+__	
+.endm
+
+.macro	a_lt ' '
+	cmp :1
+	jcc :2
+.endm
+
+.macro	a_lt2 ' '
+	cmp :1
+	jcc :2
+.endm
+
+.macro	a_ge ' '
+	cmp :1
+	jcs :2
+.endm
+
+.macro	a_ge2 ' '
+	cmp :1
+	jcs :2
+.endm
+
+.macro	bge ' '
+	jcs :1
+.endm
+
+.macro	blt ' '
+	jcc :1
+.endm
+
+.macro	pause ' '
+	ift :1 == 0
+	lda:cmp:req 20
+	els
+	lda 20
+	add #:1
+	cmp 20
+	bne *-2
+	eif
+.endm
+
+;guard if compiler reaches over given address
+.macro guard
+	ift *>=:1+1
+	;.error "Guarded address ",:1+1 , ", actual address ",*
+	.print "ERROR: Guarded address ",:1+1 , ", actual address ",*
+	eif
+.endm
+
+;fill with specified value :2 until address :1 + optional suppress print if :3 == 0
+.macro fill_until ' '
+	ift :3 != 0
+	.print "fill ",": ",*,"-",:1-1," (",:1-*-1,")" 
+	eif
+	.rept :1-*
+	dta :2
+	.endr
+	guard :1	
+.endm
+
+.macro	halt
+	dta $02	;KIL instruction
+.endm
+
+;skip next byte
+.macro	skip1
+	dta $80	;always takes 2cycles
+.endm
+
+;skip 2 next bytes
+.macro 	skip2 ;tripple nop
+	dta $0c	;always takes 4cycles 
+.endm
+
+;this is supposed to be used when populating display list(s)
+;it adds LMS address and checks whether the line (data) crosses the 4kB boundary
+;which results in incorrect characters/pixels when crossed 
+.macro 	LMS base_address,multiplier,linesize ' '
+	?addr = :base_address+:multiplier*:linesize
+	ift (?addr & $f000) != ((?addr+:linesize) & $f000)
+	?shift = (?addr & $f000) + $1000 - ?addr
+		ift ?shift != :linesize
+		.print "LMS warning: ",?addr, " on line: ",:multiplier,". Move this block (",:base_address,") ",?shift," bytes further."
+		eif
+	eif
+	ift ((?addr & $f000) - (:base_address & $f000) >= $2000) && (:linesize == 40)
+	.print "ERROR: LMS unalignable block ",:base_address," overflows through three 4k blocks!" 
+	eif
+	.word ?addr
+.endm	
+

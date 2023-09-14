@@ -129,7 +129,7 @@ dli	phr
 	
 	;mva #$02 colpf0+4
 	dex
-	bne @-
+	bne @- nmh
 
 .endr */
 
@@ -204,7 +204,7 @@ nmi_vbi	jmp (vbi_ptr)
 	org $4000
 vramfont	ins 'font.fnt'	
 
-	org $1000
+	org $6000
 vram	
 	ins 'vram.dat'
 	

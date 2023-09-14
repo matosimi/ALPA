@@ -48,6 +48,7 @@
             openFileDialog1 = new OpenFileDialog();
             flowLayoutPanel1 = new FlowLayoutPanel();
             buttonXex = new Button();
+            checkBoxAutoscale = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAprox).BeginInit();
@@ -150,8 +151,6 @@
             // checkBoxSimpleAvg
             // 
             checkBoxSimpleAvg.AutoSize = true;
-            checkBoxSimpleAvg.Checked = true;
-            checkBoxSimpleAvg.CheckState = CheckState.Checked;
             checkBoxSimpleAvg.Location = new Point(171, 12);
             checkBoxSimpleAvg.Name = "checkBoxSimpleAvg";
             checkBoxSimpleAvg.Size = new Size(117, 19);
@@ -240,11 +239,22 @@
             buttonXex.UseVisualStyleBackColor = true;
             buttonXex.Click += buttonXex_Click;
             // 
+            // checkBoxAutoscale
+            // 
+            checkBoxAutoscale.AutoSize = true;
+            checkBoxAutoscale.Location = new Point(93, 213);
+            checkBoxAutoscale.Name = "checkBoxAutoscale";
+            checkBoxAutoscale.Size = new Size(78, 19);
+            checkBoxAutoscale.TabIndex = 20;
+            checkBoxAutoscale.Text = "Autoscale";
+            checkBoxAutoscale.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(919, 536);
+            Controls.Add(checkBoxAutoscale);
             Controls.Add(buttonXex);
             Controls.Add(flowLayoutPanel1);
             Controls.Add(buttonOpen);
@@ -258,7 +268,7 @@
             Controls.Add(button1);
             Controls.Add(pictureBoxSource);
             Name = "Form1";
-            Text = "AlterLinePictureAproximator";
+            Text = "AlterLinePictureAproximator v0.3 by MatoSimi";
             Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).EndInit();
@@ -294,5 +304,6 @@
         private OpenFileDialog openFileDialog1;
         private FlowLayoutPanel flowLayoutPanel1;
         private Button buttonXex;
+        private CheckBox checkBoxAutoscale;
     }
 }
