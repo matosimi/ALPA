@@ -1,5 +1,6 @@
 namespace AlterLinePictureAproximator
 {
+    using AtariMapMaker;
     using System.CodeDom;
     using System.Drawing;
     using System.Numerics;
@@ -22,6 +23,9 @@ namespace AlterLinePictureAproximator
         public Color[,] cline0 = new Color[4, 2];
         public Color[,] cline1 = new Color[4, 2];
         public int[,,] diff_matrix;
+        public AtariColorPicker atariColorPicker = new AtariColorPicker();
+        public int[,] mask;
+        public int[,,] bitmap;
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -68,7 +72,7 @@ namespace AlterLinePictureAproximator
         {
             Bitmap p = new Bitmap(128, 200);
             Graphics g = Graphics.FromImage(p);
-            customColors = new Color[16,2];
+            customColors = new Color[16, 2];
 
             for (int z = 0; z < 2; z++)
             {
@@ -81,8 +85,8 @@ namespace AlterLinePictureAproximator
                 {
                     for (int b = 0; b < 4; b++)
                     {
-                        customColors[a * 4 + b,z] = AverageColor(l0[a], l1[b], simple);
-                        g.FillRectangle(new SolidBrush(customColors[a * 4 + b,z]), new Rectangle(b * 16 + (65 * z), a * 16, 16, 16));
+                        customColors[a * 4 + b, z] = AverageColor(l0[a], l1[b], simple);
+                        g.FillRectangle(new SolidBrush(customColors[a * 4 + b, z]), new Rectangle(b * 16 + (65 * z), a * 16, 16, 16));
                     }
                     cline0[a, z] = AverageColor(l0[a], l0[a], simple);
                     cline1[a, z] = AverageColor(l1[a], l1[a], simple);
@@ -95,7 +99,7 @@ namespace AlterLinePictureAproximator
         private void LoadPalette()
         {
             atariPalRgb = File.ReadAllBytes("altirraPAL.pal");
-
+            AtariPalette.Load(atariPalRgb);
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -119,7 +123,7 @@ namespace AlterLinePictureAproximator
             Bitmap a = new Bitmap(b.Width * 2, b.Height);
             int[,,] delta_matrix = new int[b.Width + 1, b.Height + 1, 3];
             diff_matrix = new int[b.Width + 1, b.Height + 1, 2];
-
+            bitmap = new int[b.Width, b.Height,2];
             for (int z = 0; z < 2; z++)
             {
                 delta_matrix.Initialize();
@@ -133,7 +137,7 @@ namespace AlterLinePictureAproximator
                                                src.B + delta_matrix[x,y,2]};
                         Color srcPlusDelta = Color.FromArgb(Clamp256(channel[0]), Clamp256(channel[1]), Clamp256(channel[2]));
                         int index = FindCustomClosest2(dither ? srcPlusDelta : src, distanceMethod, z == 0 ? false : true);   //use "src" to disable error diffusion
-                        diff_matrix[x, y, z] = (int)Distance(srcPlusDelta, customColors[index,z], distanceMethod);
+                        diff_matrix[x, y, z] = (int)Distance(srcPlusDelta, customColors[index, z], distanceMethod);
                         // 1/2*|# 1|
                         //     |1 0|
 
@@ -175,16 +179,18 @@ namespace AlterLinePictureAproximator
 
                         Color p1 = cline0[index / 4, z];
                         Color p2 = cline1[index % 4, z];
+                        bitmap[x, y * 2, z] = index / 4;
+                        bitmap[x, y * 2 + 1, z] = index % 4;
 
                         a.SetPixel(x * 2, y * 2, p1);
                         a.SetPixel(x * 2 + 1, y * 2, p1);
                         a.SetPixel(x * 2, y * 2 + 1, p2);
                         a.SetPixel(x * 2 + 1, y * 2 + 1, p2);
 
-                        t.SetPixel(x * 2, y * 2, customColors[index,z]);
-                        t.SetPixel(x * 2 + 1, y * 2, customColors[index,z]);
-                        t.SetPixel(x * 2, y * 2 + 1, customColors[index,z]);
-                        t.SetPixel(x * 2 + 1, y * 2 + 1, customColors[index,z]);
+                        t.SetPixel(x * 2, y * 2, customColors[index, z]);
+                        t.SetPixel(x * 2 + 1, y * 2, customColors[index, z]);
+                        t.SetPixel(x * 2, y * 2 + 1, customColors[index, z]);
+                        t.SetPixel(x * 2 + 1, y * 2 + 1, customColors[index, z]);
                     }
                 }
                 if (z == 0)
@@ -230,7 +236,7 @@ namespace AlterLinePictureAproximator
             double maxdist = double.MaxValue;
             for (int i = 0; i < 16; i++)
             {
-                double dist = Distance(color, customColors[i,inverse ? 1 : 0], distanceMethod);
+                double dist = Distance(color, customColors[i, inverse ? 1 : 0], distanceMethod);
                 if (dist < maxdist)
                 {
                     maxdist = dist;
@@ -301,6 +307,7 @@ namespace AlterLinePictureAproximator
             Graphics g = Graphics.FromImage(b);
             Graphics gm = Graphics.FromImage(m);
             int charHeight = b.Height / 8;
+            mask = new int[32, charHeight];
             double[,,] chardiff = new double[32, charHeight, 2];
             for (int y = 0; y < charHeight; y++)
                 for (int x = 0; x < 32; x++)
@@ -313,10 +320,12 @@ namespace AlterLinePictureAproximator
                     {
                         g.DrawImage(pictureBoxAtariAproxInverse.Image, x * 8, y * 8, new Rectangle(x * 8, y * 8, 8, 8), GraphicsUnit.Pixel);
                         gm.FillRectangle(new SolidBrush(Color.Black), new Rectangle(x * 8, y * 8, 8, 8));
+                        mask[x, y] = 1;
                     }
                     else
                     {
                         gm.FillRectangle(new SolidBrush(Color.White), new Rectangle(x * 8, y * 8, 8, 8));
+                        mask[x, y] = 0;
                     }
                 }
             pictureBoxAtariMix.Image = b;
@@ -342,6 +351,68 @@ namespace AlterLinePictureAproximator
                 pictureBoxSource.Image = new Bitmap(Bitmap.FromFile(openFileDialog1.FileName));
                 CreatePal(checkBoxSimpleAvg.Checked);
             }
+        }
+
+        private void pictureBoxPalette_MouseDown(object sender, MouseEventArgs e)
+        {
+            int[] remap = { 0, 1, 2, 4, 0, 1, 3, 4 };
+            int[] joint = { 0, 1, 0, 1, 0, 1, 0, 1 };   //defines which colors are joined(constant) between dlilines
+            if (e.Y > 64)
+            {
+                int line = (e.Y - 65) / 16;
+                int index = (e.X / 16) % 8;
+                Color col = atariColorPicker.Pick(line == 0 ? line0[remap[index]] : line1[remap[index]]);
+                if (atariColorPicker.PickedNewColor)
+                    if (line == 0)
+                    {
+                        line0[remap[index]] = atariColorPicker.PickedColorIndex;
+                        if (joint[index] == 1)
+                            line1[remap[index]] = atariColorPicker.PickedColorIndex;
+                    }
+                    else
+                    {
+                        line1[remap[index]] = atariColorPicker.PickedColorIndex;
+                        if (joint[index] == 1)
+                            line0[remap[index]] = atariColorPicker.PickedColorIndex;
+
+                    }
+                CreatePal(checkBoxSimpleAvg.Checked);
+            }
+        }
+
+        private void AtariExport()
+        {
+            byte[] vram = new byte[32 * 24];
+            int height = mask.Length / 32;
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < 32; x++)
+                    vram[x + y * 32] = (byte)(x + (y % 4) * 32 + 128 * mask[x, y]);
+
+            int pointer = 0;
+            byte[] remap = { 1, 2, 3, 0 };
+            byte[] charsets = new byte[32 * 24 * 8];
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < 32; x++)
+                {
+                    int picnum = mask[x, y];
+                    for (int i = 0; i < 8; i++) //8 bytes of a char
+                    {
+                        byte multiplyer = 64;
+                        for (int b = 0; b < 4; b++)
+                        {
+                            charsets[pointer] += (byte)(multiplyer * remap[bitmap[x * 4+b, y * 8+i, picnum]]);
+                            multiplyer >>= 2;
+                        }
+                        pointer++;
+                    }
+                }
+            File.WriteAllBytes("vram.dat", vram);
+            File.WriteAllBytes("font.fnt", charsets);
+        }
+
+        private void buttonXex_Click(object sender, EventArgs e)
+        {
+            AtariExport();
         }
     }
 }

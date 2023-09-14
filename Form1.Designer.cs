@@ -47,6 +47,7 @@
             buttonOpen = new Button();
             openFileDialog1 = new OpenFileDialog();
             flowLayoutPanel1 = new FlowLayoutPanel();
+            buttonXex = new Button();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAprox).BeginInit();
@@ -95,11 +96,14 @@
             // 
             // pictureBoxPalette
             // 
+            pictureBoxPalette.ErrorImage = null;
+            pictureBoxPalette.Image = Properties.Resources.pal;
             pictureBoxPalette.Location = new Point(12, 240);
             pictureBoxPalette.Name = "pictureBoxPalette";
-            pictureBoxPalette.Size = new Size(256, 192);
+            pictureBoxPalette.Size = new Size(128, 97);
             pictureBoxPalette.TabIndex = 4;
             pictureBoxPalette.TabStop = false;
+            pictureBoxPalette.MouseDown += pictureBoxPalette_MouseDown;
             // 
             // pictureBoxAproxInverse
             // 
@@ -226,11 +230,22 @@
             flowLayoutPanel1.Size = new Size(536, 536);
             flowLayoutPanel1.TabIndex = 18;
             // 
+            // buttonXex
+            // 
+            buttonXex.Location = new Point(311, 287);
+            buttonXex.Name = "buttonXex";
+            buttonXex.Size = new Size(53, 64);
+            buttonXex.TabIndex = 19;
+            buttonXex.Text = "-> xex";
+            buttonXex.UseVisualStyleBackColor = true;
+            buttonXex.Click += buttonXex_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(919, 536);
+            Controls.Add(buttonXex);
             Controls.Add(flowLayoutPanel1);
             Controls.Add(buttonOpen);
             Controls.Add(label1);
@@ -278,5 +293,6 @@
         private Button buttonOpen;
         private OpenFileDialog openFileDialog1;
         private FlowLayoutPanel flowLayoutPanel1;
+        private Button buttonXex;
     }
 }
