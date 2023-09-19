@@ -435,19 +435,20 @@ namespace AlterLinePictureAproximator
                     }
                 }
 
-            byte[] colors = new byte[8] { line0[1], line0[4], line0[0], line1[0], line0[2], line1[2], line0[3], line1[3] };
+            byte[] colors = new byte[9] { line0[1], line0[4], line0[0], line1[0], line0[2], line1[2], line0[3], line1[3], 0 };
+            colors[8] = (byte)(checkBoxInterlace.Checked ? 1 : 0);
 
             File.WriteAllBytes("vram.dat", vram);
             File.WriteAllBytes("font.fnt", charsets);
             File.WriteAllBytes("colors.dat", colors);
 
-            //012c $4000 font
-            //$1930 $6000 vram
-            //$1c30 colors
+            //012c $4000 font   01d3
+            //$1930 $6000 vram  19d7
+            //$1c30 colors      1cd7
             byte[] xex = File.ReadAllBytes("alterline2.xex");
-            Array.Copy(charsets, 0, xex, 0x012c, charsets.Length);
-            Array.Copy(vram, 0, xex, 0x1930, vram.Length);
-            Array.Copy(colors, 0, xex, 0x1c30, colors.Length);
+            Array.Copy(charsets, 0, xex, 0x01d3, charsets.Length);
+            Array.Copy(vram, 0, xex, 0x19d7, vram.Length);
+            Array.Copy(colors, 0, xex, 0x1cd7, colors.Length);
             File.WriteAllBytes("output.xex", xex);
         }
 

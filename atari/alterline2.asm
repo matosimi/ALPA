@@ -1,4 +1,3 @@
-debug_leveldata=0
 
 color0	equ $2fc
 hposp0	equ $d000
@@ -68,6 +67,7 @@ mypmbase	equ $1400
 	
 .rept	6,#+2
 	mva colors+:1 gamedli.c:1
+	mva colors+:1 gamedli.dli2.c:1
 .endr
 	;build mirror table
 	ldx #0
@@ -79,62 +79,44 @@ mypmbase	equ $1400
 	inx
 	bne @-	
 	
+	
 	mva #$c0 nmien ;c0,40
+	
+	mva #26 count
+@	ldx #0
+@
+x1	lda vramfont,x
+x2	sta vrfont2+1,x
+x3	lda vramfont+1,x
+x4	sta vrfont2,x
+	inx
+	inx
+	bne @-	
+	inc x1+2
+	inc x2+2
+	inc x3+2
+	inc x4+2
+	dec count
+	bne @-1
+	
 	jmp *
+count	dta 0
 	
 	
 .local gameVbi	
 vbi	phr
 	inc 20
-	ift debug_leveldata=1
-	mva #>vramfont chbase
-	eif
-	;add #4
-	;sta gamedli.fontbank
-;	mva colors+2 colpf0
 	mva colors colpf0+1
-;	mva colors+4 colpf0+2
-;	mva colors+6 colpf0+3
 	mva colors+1 colpf0+4
 	mva #$21 prior
-	
 	plr
 	rti
 .endl
 	
 .local gamedli	
 dli	phr
-
-/*
-.rept 6,#
-?i = :1
-	;mva #6 $c0
-	ldy #>vramfont+4*?i
-@	ldx #4*4
-@	lda #$1a
-	sta wsync
-	sta colpf0
-	ift debug_leveldata=0
-	sty chbase
-	eif
-	mva #$26 colpf0+2
-	mva #$0a colpf0+3
-	;mva #$00 colpf0+4
-	
-	lda #$14
-	sta wsync
-	sta colpf0
-	mva #$48 colpf0+2
-	mva #$ba colpf0+3
-	
-	;mva #$02 colpf0+4
-	dex
-	bne @- nmh
-
-.endr */
-
 	mva #6 $c0
-	ldy #>vramfont
+	ldy poop:#>vramfont
 @	ldx #4*4
 @	lda c2:#$1a
 	sta wsync
@@ -149,6 +131,40 @@ dli	phr
 	sta colpf0
 	mva c5:#$48 colpf0+2
 	mva c7:#$ba colpf0+3
+	dex
+	bne @-
+	
+	iny
+	iny
+	iny
+	iny
+	dec $c0
+	bne @-1
+	lda ilace
+	beq @+
+	mwa #gameDli.dli2 dli_ptr
+@	plr
+	rti
+
+.local dli2
+	phr
+
+	mva #6 $c0
+	ldy #>vrfont2
+@	ldx #4*4
+@	lda c3:#$1a
+	sta wsync
+	sta colpf0
+	sty chbase
+	mva c5:#$26 colpf0+2
+	mva c7:#$0a colpf0+3
+	;mva #$00 colpf0+4
+	
+	lda c2:#$14
+	sta wsync
+	sta colpf0
+	mva c4:#$48 colpf0+2
+	mva c6:#$ba colpf0+3
 	
 	dex
 	bne @-
@@ -160,8 +176,11 @@ dli	phr
 	dec $c0
 	bne @-1
 	
+	mwa #gameDli.dli dli_ptr
+	
 	plr
 	rti
+.endl
 .endl
 
 /*
@@ -188,7 +207,8 @@ dli	phr
 ingame_dl
 	dta $70,$70,$60
 	dta $80 ;f
-	dta $44,a(vram)
+	dta $44
+addr	dta a(vram)
 	
 :23	dta $4
 	dta $0
@@ -203,8 +223,9 @@ nmi_vbi	jmp (vbi_ptr)
 
 	org $4000
 vramfont	ins 'font.fnt'	
+vrfont2	org $6000
 
-	org $6000
+	org $8000
 vram	
 	ins 'vram.dat'
 	
@@ -213,7 +234,7 @@ colors	ins 'colors.dat'
 	dta $1a,$14
 	dta $26,$48
 	dta $0a,$ba*/
-	
+ilace	dta 1 ;use interlace	
 
 	icl "matosimi_macros.asx"
 	

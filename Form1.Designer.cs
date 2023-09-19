@@ -49,6 +49,7 @@
             flowLayoutPanel1 = new FlowLayoutPanel();
             buttonXex = new Button();
             checkBoxAutoscale = new CheckBox();
+            checkBoxInterlace = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAprox).BeginInit();
@@ -249,11 +250,22 @@
             checkBoxAutoscale.Text = "Autoscale";
             checkBoxAutoscale.UseVisualStyleBackColor = true;
             // 
+            // checkBoxInterlace
+            // 
+            checkBoxInterlace.AutoSize = true;
+            checkBoxInterlace.Location = new Point(293, 357);
+            checkBoxInterlace.Name = "checkBoxInterlace";
+            checkBoxInterlace.Size = new Size(71, 19);
+            checkBoxInterlace.TabIndex = 21;
+            checkBoxInterlace.Text = "Interlace";
+            checkBoxInterlace.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(919, 536);
+            Controls.Add(checkBoxInterlace);
             Controls.Add(checkBoxAutoscale);
             Controls.Add(buttonXex);
             Controls.Add(flowLayoutPanel1);
@@ -267,8 +279,9 @@
             Controls.Add(pictureBoxPalette);
             Controls.Add(button1);
             Controls.Add(pictureBoxSource);
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "Form1";
-            Text = "AlterLinePictureAproximator v0.3 by MatoSimi";
+            Text = "AlterLinePictureAproximator (ALPA) v0.4 by MatoSimi";
             Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).EndInit();
@@ -305,5 +318,6 @@
         private FlowLayoutPanel flowLayoutPanel1;
         private Button buttonXex;
         private CheckBox checkBoxAutoscale;
+        private CheckBox checkBoxInterlace;
     }
 }
