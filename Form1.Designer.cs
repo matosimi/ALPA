@@ -30,7 +30,7 @@
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             pictureBoxSource = new PictureBox();
-            button1 = new Button();
+            buttonApproximate = new Button();
             pictureBoxAprox = new PictureBox();
             pictureBoxAtariAprox = new PictureBox();
             pictureBoxPalette = new PictureBox();
@@ -70,15 +70,15 @@
             pictureBoxSource.TabIndex = 0;
             pictureBoxSource.TabStop = false;
             // 
-            // button1
+            // buttonApproximate
             // 
-            button1.Location = new Point(311, 12);
-            button1.Name = "button1";
-            button1.Size = new Size(53, 64);
-            button1.TabIndex = 1;
-            button1.Text = "Aprioximate";
-            button1.UseVisualStyleBackColor = true;
-            button1.Click += button1_Click;
+            buttonApproximate.Location = new Point(311, 12);
+            buttonApproximate.Name = "buttonApproximate";
+            buttonApproximate.Size = new Size(53, 64);
+            buttonApproximate.TabIndex = 1;
+            buttonApproximate.Text = "Approximate";
+            buttonApproximate.UseVisualStyleBackColor = true;
+            buttonApproximate.Click += button1_Click;
             // 
             // pictureBoxAprox
             // 
@@ -99,7 +99,7 @@
             // pictureBoxPalette
             // 
             pictureBoxPalette.ErrorImage = null;
-            pictureBoxPalette.Image = Properties.Resources.pal;
+            pictureBoxPalette.Image = AlterLinePictureApproximator.Properties.Resources.pal;
             pictureBoxPalette.Location = new Point(12, 240);
             pictureBoxPalette.Name = "pictureBoxPalette";
             pictureBoxPalette.Size = new Size(128, 97);
@@ -187,7 +187,7 @@
             // 
             comboBoxDistance.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxDistance.FormattingEnabled = true;
-            comboBoxDistance.Items.AddRange(new object[] { "difference", "RGB euclid", "YUV euclid" });
+            comboBoxDistance.Items.AddRange(new object[] { "difference", "RGB euclid", "RGBYUV" });
             comboBoxDistance.Location = new Point(171, 124);
             comboBoxDistance.Name = "comboBoxDistance";
             comboBoxDistance.Size = new Size(96, 23);
@@ -277,11 +277,11 @@
             Controls.Add(checkBoxSimpleAvg);
             Controls.Add(button2);
             Controls.Add(pictureBoxPalette);
-            Controls.Add(button1);
+            Controls.Add(buttonApproximate);
             Controls.Add(pictureBoxSource);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "Form1";
-            Text = "AlterLinePictureAproximator (ALPA) v0.4 by MatoSimi";
+            Text = "AlterLinePictureApproximator (ALPA) v0.4 by MatoSimi";
             Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).EndInit();
@@ -299,7 +299,7 @@
         #endregion
 
         private PictureBox pictureBoxSource;
-        private Button button1;
+        private Button buttonApproximate;
         private PictureBox pictureBoxAprox;
         private PictureBox pictureBoxAtariAprox;
         private PictureBox pictureBoxPalette;
