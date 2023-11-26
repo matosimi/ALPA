@@ -37,7 +37,7 @@
             pictureBoxAproxInverse = new PictureBox();
             pictureBoxAtariAproxInverse = new PictureBox();
             pictureBoxAtariMix = new PictureBox();
-            button2 = new Button();
+            buttonMixIt = new Button();
             pictureBoxCharMask = new PictureBox();
             checkBoxSimpleAvg = new CheckBox();
             comboBoxDither = new ComboBox();
@@ -50,6 +50,7 @@
             buttonXex = new Button();
             checkBoxAutoscale = new CheckBox();
             checkBoxInterlace = new CheckBox();
+            checkBoxAutoUpdate = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAprox).BeginInit();
@@ -78,7 +79,7 @@
             buttonApproximate.TabIndex = 1;
             buttonApproximate.Text = "Approximate";
             buttonApproximate.UseVisualStyleBackColor = true;
-            buttonApproximate.Click += button1_Click;
+            buttonApproximate.Click += ButtonApproximate_Click;
             // 
             // pictureBoxAprox
             // 
@@ -131,15 +132,15 @@
             pictureBoxAtariMix.TabIndex = 8;
             pictureBoxAtariMix.TabStop = false;
             // 
-            // button2
+            // buttonMixIt
             // 
-            button2.Location = new Point(311, 84);
-            button2.Name = "button2";
-            button2.Size = new Size(53, 64);
-            button2.TabIndex = 9;
-            button2.Text = "Mix";
-            button2.UseVisualStyleBackColor = true;
-            button2.Click += button2_Click;
+            buttonMixIt.Location = new Point(311, 84);
+            buttonMixIt.Name = "buttonMixIt";
+            buttonMixIt.Size = new Size(53, 64);
+            buttonMixIt.TabIndex = 9;
+            buttonMixIt.Text = "Mix";
+            buttonMixIt.UseVisualStyleBackColor = true;
+            buttonMixIt.Click += ButtonMixIt_Click;
             // 
             // pictureBoxCharMask
             // 
@@ -260,11 +261,22 @@
             checkBoxInterlace.Text = "Interlace";
             checkBoxInterlace.UseVisualStyleBackColor = true;
             // 
+            // checkBoxAutoUpdate
+            // 
+            checkBoxAutoUpdate.AutoSize = true;
+            checkBoxAutoUpdate.Location = new Point(146, 318);
+            checkBoxAutoUpdate.Name = "checkBoxAutoUpdate";
+            checkBoxAutoUpdate.Size = new Size(89, 19);
+            checkBoxAutoUpdate.TabIndex = 22;
+            checkBoxAutoUpdate.Text = "Autoupdate";
+            checkBoxAutoUpdate.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(919, 536);
+            Controls.Add(checkBoxAutoUpdate);
             Controls.Add(checkBoxInterlace);
             Controls.Add(checkBoxAutoscale);
             Controls.Add(buttonXex);
@@ -275,13 +287,13 @@
             Controls.Add(checkBoxUseDither);
             Controls.Add(comboBoxDither);
             Controls.Add(checkBoxSimpleAvg);
-            Controls.Add(button2);
+            Controls.Add(buttonMixIt);
             Controls.Add(pictureBoxPalette);
             Controls.Add(buttonApproximate);
             Controls.Add(pictureBoxSource);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "Form1";
-            Text = "AlterLinePictureApproximator (ALPA) v0.4 by MatoSimi";
+            Text = "AlterLinePictureApproximator (ALPA) v0.5 by MatoSimi";
             Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).EndInit();
@@ -306,7 +318,7 @@
         private PictureBox pictureBoxAproxInverse;
         private PictureBox pictureBoxAtariAproxInverse;
         private PictureBox pictureBoxAtariMix;
-        private Button button2;
+        private Button buttonMixIt;
         private PictureBox pictureBoxCharMask;
         private CheckBox checkBoxSimpleAvg;
         private ComboBox comboBoxDither;
@@ -319,5 +331,6 @@
         private Button buttonXex;
         private CheckBox checkBoxAutoscale;
         private CheckBox checkBoxInterlace;
+        private CheckBox checkBoxAutoUpdate;
     }
 }
