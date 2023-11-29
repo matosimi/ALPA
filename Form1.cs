@@ -7,7 +7,9 @@ namespace AlterLinePictureAproximator
     using System.Globalization;
     using System.Numerics;
     using System.Reflection;
+    using System.Runtime.InteropServices;
     using System.Security;
+    using System.Security.Cryptography.X509Certificates;
     using System.Text.Json.Serialization.Metadata;
 
 
@@ -55,6 +57,7 @@ namespace AlterLinePictureAproximator
             comboBoxDistance.SelectedIndex = 0;
             comboBoxDither.SelectedIndex = 0;
             PictureToChannel(checkBoxSimpleAvg.Checked);
+            ReduceColors();
         }
 
 
@@ -648,8 +651,8 @@ namespace AlterLinePictureAproximator
                 alpaItems.Add(ai);
             }
             List<AlpaItem> sorted = alpaItems.OrderBy(d => d.diff).ToList();
-            if (alpaItems.Count > population/4)
-                sorted.RemoveRange(population / 4 -1, alpaItems.Count - (population / 4) -1);
+            if (alpaItems.Count > population / 4)
+                sorted.RemoveRange(population / 4 - 1, alpaItems.Count - (population / 4) - 1);
             alpaItems = sorted;
             listViewPopulation.Items.Clear();
         }
@@ -892,6 +895,154 @@ namespace AlterLinePictureAproximator
                 CreatePal(checkBoxSimpleAvg.Checked, false);
                 DoConvert(checkBoxSimpleAvg.Checked, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
                 MixIt();
+            }
+        }
+
+        public class RGBHisto
+        {
+            public int R { get; set; }
+
+            public int G { get; set; }
+
+            public int B { get; set; }
+            public int Amount { get; set; }
+        }
+
+        public class BinarySpatialParitioningNode
+        {
+            public BinarySpatialParitioningNode(List<RGBHisto> colors)
+            {
+                Colors = colors;
+            }
+            public List<RGBHisto> Colors { get; set; }
+            public List<RGBHisto> Lo { get; set; }
+            public List<RGBHisto> Hi { get; set; }
+            public RGBHisto SplitColor { get; set; }
+            public int ColorPlane { get; set; }
+        }
+
+        private void ReduceColors()
+        {
+         
+            Dictionary<int,int> histogram = new Dictionary<int,int>();
+            int width = srcChannelMatrix.GetLength(0);
+            int height = srcChannelMatrix.GetLength(1);
+            //create histogram
+            for (int y = 0; y < height;y++)
+                for (int x = 0; x < width;x++)
+                {
+                    int rgb = ((srcChannelMatrix[x, y, 0] << 16)) | ((srcChannelMatrix[x, y, 1] << 8)) | (srcChannelMatrix[x, y, 2]);
+
+                    if (histogram.ContainsKey(rgb))
+                    {
+                        histogram[rgb] += 1;
+                    }
+                    else
+                    {
+                        histogram.Add(rgb, 1);
+                    }
+                }
+            List<RGBHisto> histoList = new List<RGBHisto>();
+            foreach (int rgb in histogram.Keys)
+            {
+                RGBHisto item = new RGBHisto();
+                item.R = (rgb >> 16)&0xFF;
+                item.G = (rgb >> 8)&0xFF;
+                item.B = rgb & 0xFF;
+                histogram.TryGetValue(rgb, out int amount);
+                item.Amount = amount;
+                histoList.Add(item);
+            }
+            //binary spatial partitioning of the palette
+            List<BinarySpatialParitioningNode> nodes = new List<BinarySpatialParitioningNode>();
+            BinarySpatialParitioningNode initNode = new BinarySpatialParitioningNode(histoList);
+            nodes.Add(initNode);
+
+            for (int i = 0; i < 8; i++)
+            {
+                int colorPlane = i % 3;
+                List<BinarySpatialParitioningNode> newNodes = new List<BinarySpatialParitioningNode>();
+                foreach (BinarySpatialParitioningNode node in nodes)
+                {
+                    List<RGBHisto> sorted = null;
+                    switch (colorPlane)
+                    {
+                        case 0:
+                            sorted = node.Colors.OrderBy(d => d.R).ToList();
+                            break;
+                        case 1:
+                            sorted = node.Colors.OrderBy(d => d.G).ToList();
+                            break;
+                        case 2:
+                            sorted = node.Colors.OrderBy(d => d.B).ToList();
+                            break;
+                    }
+                    /*node.Lo = sorted.GetRange(0, node.Colors.Count / 2);
+                    node.Hi = sorted.GetRange(node.Colors.Count / 2, node.Colors.Count / 2);
+                    node.Colors.Clear();
+                    node.SplitColor = node.Hi[0];
+                    node.ColorPlane = colorPlane; */
+
+
+                    newNodes.Add(new BinarySpatialParitioningNode(sorted.GetRange(0, node.Colors.Count / 2)));
+                    newNodes.Add(new BinarySpatialParitioningNode(sorted.GetRange(node.Colors.Count / 2, node.Colors.Count / 2)));
+                }
+                nodes = newNodes;
+            }
+            List<Color> palette256 = new List<Color>();
+            //weighted palette generation
+            for (int i = 0; i < 256; i++ )
+            {
+                int r = 0;
+                int g = 0;
+                int b = 0;
+                int amountTotal = 0;
+                foreach (RGBHisto item in nodes[i].Colors)
+                {
+                    r += item.R*item.Amount; 
+                    g += item.G*item.Amount; 
+                    b += item.B*item.Amount;
+                    amountTotal += item.Amount;
+                }
+                r /= amountTotal;
+                g /= amountTotal;
+                b /= amountTotal;
+                palette256.Add(Color.FromArgb(r, g, b));
+            }
+            //palette optimized picture drawing
+            Bitmap srcBmp = (Bitmap)pictureBoxSource.Image;
+            Bitmap tgtBmp = new Bitmap(width*2,height*2);
+            //int width = srcChannelMatrix.GetLength(0);
+            //int height = srcChannelMatrix.GetLength(1);
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    int targetColorIndex = -1;
+                    for (int i = 0; i < 256; i++)
+                    {
+                        int index = nodes[i].Colors.FindIndex(d => d.R == srcChannelMatrix[x, y, 0] && d.G == srcChannelMatrix[x, y, 1] && d.B == srcChannelMatrix[x, y, 2]);
+                        if (index > -1)
+                        {
+                            targetColorIndex = i;
+                            break;
+                        }
+                    }
+                    if (targetColorIndex == -1) targetColorIndex = 0;
+                    tgtBmp.SetPixel(x * 2, y * 2, palette256[targetColorIndex]);
+                    tgtBmp.SetPixel(x * 2 + 1, y * 2, palette256[targetColorIndex]);
+                    tgtBmp.SetPixel(x * 2, y * 2 + 1, palette256[targetColorIndex]);
+                    tgtBmp.SetPixel(x * 2 + 1, y * 2 + 1, palette256[targetColorIndex]);
+
+                }
+            pictureBoxSrcReduced.Image = tgtBmp;
+            pictureBoxSrcReduced.Size = tgtBmp.Size;
+        }
+
+        private void checkBoxColorReduction_CheckedChanged(object sender, EventArgs e)
+        {
+            if (checkBoxColorReduction.Checked)
+            {
+                ReduceColors();
             }
         }
     }

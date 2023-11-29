@@ -48,7 +48,7 @@
             openFileDialog1 = new OpenFileDialog();
             flowLayoutPanel1 = new FlowLayoutPanel();
             pictureBoxAproxMix = new PictureBox();
-            pictureBox1 = new PictureBox();
+            pictureBoxSrcReduced = new PictureBox();
             pictureBoxSrcData = new PictureBox();
             buttonXex = new Button();
             checkBoxAutoscale = new CheckBox();
@@ -63,6 +63,7 @@
             listViewPopulation = new ListView();
             columnHeader1 = new ColumnHeader();
             buttonAlpaCentauriInit = new Button();
+            checkBoxColorReduction = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAprox).BeginInit();
@@ -73,7 +74,7 @@
             ((System.ComponentModel.ISupportInitialize)pictureBoxCharMask).BeginInit();
             flowLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAproxMix).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxSrcReduced).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSrcData).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownPopulation).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownGeneration).BeginInit();
@@ -92,7 +93,7 @@
             // 
             buttonApproximate.Location = new Point(311, 12);
             buttonApproximate.Name = "buttonApproximate";
-            buttonApproximate.Size = new Size(53, 64);
+            buttonApproximate.Size = new Size(93, 73);
             buttonApproximate.TabIndex = 1;
             buttonApproximate.Text = "Approximate";
             buttonApproximate.UseVisualStyleBackColor = true;
@@ -100,7 +101,7 @@
             // 
             // pictureBoxAprox
             // 
-            pictureBoxAprox.Location = new Point(3, 3);
+            pictureBoxAprox.Location = new Point(3, 145);
             pictureBoxAprox.Name = "pictureBoxAprox";
             pictureBoxAprox.Size = new Size(256, 136);
             pictureBoxAprox.TabIndex = 2;
@@ -108,7 +109,7 @@
             // 
             // pictureBoxAtariAprox
             // 
-            pictureBoxAtariAprox.Location = new Point(3, 145);
+            pictureBoxAtariAprox.Location = new Point(3, 3);
             pictureBoxAtariAprox.Name = "pictureBoxAtariAprox";
             pictureBoxAtariAprox.Size = new Size(256, 136);
             pictureBoxAtariAprox.TabIndex = 3;
@@ -127,7 +128,7 @@
             // 
             // pictureBoxAproxInverse
             // 
-            pictureBoxAproxInverse.Location = new Point(265, 3);
+            pictureBoxAproxInverse.Location = new Point(265, 145);
             pictureBoxAproxInverse.Name = "pictureBoxAproxInverse";
             pictureBoxAproxInverse.Size = new Size(256, 136);
             pictureBoxAproxInverse.TabIndex = 6;
@@ -135,7 +136,7 @@
             // 
             // pictureBoxAtariAproxInverse
             // 
-            pictureBoxAtariAproxInverse.Location = new Point(265, 145);
+            pictureBoxAtariAproxInverse.Location = new Point(265, 3);
             pictureBoxAtariAproxInverse.Name = "pictureBoxAtariAproxInverse";
             pictureBoxAtariAproxInverse.Size = new Size(256, 136);
             pictureBoxAtariAproxInverse.TabIndex = 7;
@@ -143,7 +144,7 @@
             // 
             // pictureBoxAtariMix
             // 
-            pictureBoxAtariMix.Location = new Point(527, 145);
+            pictureBoxAtariMix.Location = new Point(527, 3);
             pictureBoxAtariMix.Name = "pictureBoxAtariMix";
             pictureBoxAtariMix.Size = new Size(256, 136);
             pictureBoxAtariMix.TabIndex = 8;
@@ -151,9 +152,9 @@
             // 
             // buttonMixIt
             // 
-            buttonMixIt.Location = new Point(311, 113);
+            buttonMixIt.Location = new Point(311, 145);
             buttonMixIt.Name = "buttonMixIt";
-            buttonMixIt.Size = new Size(93, 120);
+            buttonMixIt.Size = new Size(93, 73);
             buttonMixIt.TabIndex = 9;
             buttonMixIt.Text = "Mix";
             buttonMixIt.UseVisualStyleBackColor = true;
@@ -236,14 +237,14 @@
             // 
             // flowLayoutPanel1
             // 
-            flowLayoutPanel1.Controls.Add(pictureBoxAprox);
-            flowLayoutPanel1.Controls.Add(pictureBoxAproxInverse);
-            flowLayoutPanel1.Controls.Add(pictureBoxAproxMix);
             flowLayoutPanel1.Controls.Add(pictureBoxAtariAprox);
             flowLayoutPanel1.Controls.Add(pictureBoxAtariAproxInverse);
             flowLayoutPanel1.Controls.Add(pictureBoxAtariMix);
+            flowLayoutPanel1.Controls.Add(pictureBoxAprox);
+            flowLayoutPanel1.Controls.Add(pictureBoxAproxInverse);
+            flowLayoutPanel1.Controls.Add(pictureBoxAproxMix);
             flowLayoutPanel1.Controls.Add(pictureBoxCharMask);
-            flowLayoutPanel1.Controls.Add(pictureBox1);
+            flowLayoutPanel1.Controls.Add(pictureBoxSrcReduced);
             flowLayoutPanel1.Controls.Add(pictureBoxSrcData);
             flowLayoutPanel1.Dock = DockStyle.Right;
             flowLayoutPanel1.Location = new Point(410, 0);
@@ -253,20 +254,20 @@
             // 
             // pictureBoxAproxMix
             // 
-            pictureBoxAproxMix.Location = new Point(527, 3);
+            pictureBoxAproxMix.Location = new Point(527, 145);
             pictureBoxAproxMix.Name = "pictureBoxAproxMix";
             pictureBoxAproxMix.Size = new Size(256, 136);
             pictureBoxAproxMix.TabIndex = 12;
             pictureBoxAproxMix.TabStop = false;
             // 
-            // pictureBox1
+            // pictureBoxSrcReduced
             // 
-            pictureBox1.BackColor = SystemColors.ActiveCaptionText;
-            pictureBox1.Location = new Point(265, 287);
-            pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(256, 136);
-            pictureBox1.TabIndex = 13;
-            pictureBox1.TabStop = false;
+            pictureBoxSrcReduced.BackColor = SystemColors.ActiveCaptionText;
+            pictureBoxSrcReduced.Location = new Point(265, 287);
+            pictureBoxSrcReduced.Name = "pictureBoxSrcReduced";
+            pictureBoxSrcReduced.Size = new Size(256, 136);
+            pictureBoxSrcReduced.TabIndex = 13;
+            pictureBoxSrcReduced.TabStop = false;
             // 
             // pictureBoxSrcData
             // 
@@ -278,9 +279,9 @@
             // 
             // buttonXex
             // 
-            buttonXex.Location = new Point(311, 287);
+            buttonXex.Location = new Point(311, 281);
             buttonXex.Name = "buttonXex";
-            buttonXex.Size = new Size(53, 64);
+            buttonXex.Size = new Size(93, 70);
             buttonXex.TabIndex = 19;
             buttonXex.Text = "-> xex";
             buttonXex.UseVisualStyleBackColor = true;
@@ -299,7 +300,9 @@
             // checkBoxInterlace
             // 
             checkBoxInterlace.AutoSize = true;
-            checkBoxInterlace.Location = new Point(293, 357);
+            checkBoxInterlace.Checked = true;
+            checkBoxInterlace.CheckState = CheckState.Checked;
+            checkBoxInterlace.Location = new Point(311, 357);
             checkBoxInterlace.Name = "checkBoxInterlace";
             checkBoxInterlace.Size = new Size(71, 19);
             checkBoxInterlace.TabIndex = 21;
@@ -399,11 +402,25 @@
             buttonAlpaCentauriInit.UseVisualStyleBackColor = true;
             buttonAlpaCentauriInit.Click += buttonAlpaCentauriInit_Click;
             // 
+            // checkBoxColorReduction
+            // 
+            checkBoxColorReduction.AutoSize = true;
+            checkBoxColorReduction.Checked = true;
+            checkBoxColorReduction.CheckState = CheckState.Checked;
+            checkBoxColorReduction.Location = new Point(171, 185);
+            checkBoxColorReduction.Name = "checkBoxColorReduction";
+            checkBoxColorReduction.Size = new Size(109, 19);
+            checkBoxColorReduction.TabIndex = 31;
+            checkBoxColorReduction.Text = "Color reduction";
+            checkBoxColorReduction.UseVisualStyleBackColor = true;
+            checkBoxColorReduction.CheckedChanged += checkBoxColorReduction_CheckedChanged;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1210, 576);
+            Controls.Add(checkBoxColorReduction);
             Controls.Add(buttonAlpaCentauriInit);
             Controls.Add(listViewPopulation);
             Controls.Add(label4);
@@ -441,7 +458,7 @@
             ((System.ComponentModel.ISupportInitialize)pictureBoxCharMask).EndInit();
             flowLayoutPanel1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)pictureBoxAproxMix).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxSrcReduced).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSrcData).EndInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownPopulation).EndInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownGeneration).EndInit();
@@ -481,9 +498,10 @@
         private Label label4;
         private PictureBox pictureBoxAproxMix;
         private PictureBox pictureBoxSrcData;
-        private PictureBox pictureBox1;
+        private PictureBox pictureBoxSrcReduced;
         private ListView listViewPopulation;
         private Button buttonAlpaCentauriInit;
         private ColumnHeader columnHeader1;
+        private CheckBox checkBoxColorReduction;
     }
 }
