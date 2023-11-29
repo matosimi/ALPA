@@ -47,10 +47,22 @@
             buttonOpen = new Button();
             openFileDialog1 = new OpenFileDialog();
             flowLayoutPanel1 = new FlowLayoutPanel();
+            pictureBoxAproxMix = new PictureBox();
+            pictureBox1 = new PictureBox();
+            pictureBoxSrcData = new PictureBox();
             buttonXex = new Button();
             checkBoxAutoscale = new CheckBox();
             checkBoxInterlace = new CheckBox();
             checkBoxAutoUpdate = new CheckBox();
+            buttonAlpaCentauriAI = new Button();
+            label2 = new Label();
+            numericUpDownPopulation = new NumericUpDown();
+            numericUpDownGeneration = new NumericUpDown();
+            label3 = new Label();
+            label4 = new Label();
+            listViewPopulation = new ListView();
+            columnHeader1 = new ColumnHeader();
+            buttonAlpaCentauriInit = new Button();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAprox).BeginInit();
@@ -60,6 +72,11 @@
             ((System.ComponentModel.ISupportInitialize)pictureBoxAtariMix).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxCharMask).BeginInit();
             flowLayoutPanel1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxAproxMix).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxSrcData).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)numericUpDownPopulation).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)numericUpDownGeneration).BeginInit();
             SuspendLayout();
             // 
             // pictureBoxSource
@@ -126,7 +143,7 @@
             // 
             // pictureBoxAtariMix
             // 
-            pictureBoxAtariMix.Location = new Point(265, 287);
+            pictureBoxAtariMix.Location = new Point(527, 145);
             pictureBoxAtariMix.Name = "pictureBoxAtariMix";
             pictureBoxAtariMix.Size = new Size(256, 136);
             pictureBoxAtariMix.TabIndex = 8;
@@ -134,9 +151,9 @@
             // 
             // buttonMixIt
             // 
-            buttonMixIt.Location = new Point(311, 84);
+            buttonMixIt.Location = new Point(311, 113);
             buttonMixIt.Name = "buttonMixIt";
-            buttonMixIt.Size = new Size(53, 64);
+            buttonMixIt.Size = new Size(93, 120);
             buttonMixIt.TabIndex = 9;
             buttonMixIt.Text = "Mix";
             buttonMixIt.UseVisualStyleBackColor = true;
@@ -188,7 +205,7 @@
             // 
             comboBoxDistance.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxDistance.FormattingEnabled = true;
-            comboBoxDistance.Items.AddRange(new object[] { "difference", "RGB euclid", "RGBYUV" });
+            comboBoxDistance.Items.AddRange(new object[] { "difference", "RGB euclid", "RGBYUV", "YUV euclid", "Weighted RGB" });
             comboBoxDistance.Location = new Point(171, 124);
             comboBoxDistance.Name = "comboBoxDistance";
             comboBoxDistance.Size = new Size(96, 23);
@@ -221,15 +238,43 @@
             // 
             flowLayoutPanel1.Controls.Add(pictureBoxAprox);
             flowLayoutPanel1.Controls.Add(pictureBoxAproxInverse);
+            flowLayoutPanel1.Controls.Add(pictureBoxAproxMix);
             flowLayoutPanel1.Controls.Add(pictureBoxAtariAprox);
             flowLayoutPanel1.Controls.Add(pictureBoxAtariAproxInverse);
-            flowLayoutPanel1.Controls.Add(pictureBoxCharMask);
             flowLayoutPanel1.Controls.Add(pictureBoxAtariMix);
+            flowLayoutPanel1.Controls.Add(pictureBoxCharMask);
+            flowLayoutPanel1.Controls.Add(pictureBox1);
+            flowLayoutPanel1.Controls.Add(pictureBoxSrcData);
             flowLayoutPanel1.Dock = DockStyle.Right;
-            flowLayoutPanel1.Location = new Point(383, 0);
+            flowLayoutPanel1.Location = new Point(410, 0);
             flowLayoutPanel1.Name = "flowLayoutPanel1";
-            flowLayoutPanel1.Size = new Size(536, 536);
+            flowLayoutPanel1.Size = new Size(800, 576);
             flowLayoutPanel1.TabIndex = 18;
+            // 
+            // pictureBoxAproxMix
+            // 
+            pictureBoxAproxMix.Location = new Point(527, 3);
+            pictureBoxAproxMix.Name = "pictureBoxAproxMix";
+            pictureBoxAproxMix.Size = new Size(256, 136);
+            pictureBoxAproxMix.TabIndex = 12;
+            pictureBoxAproxMix.TabStop = false;
+            // 
+            // pictureBox1
+            // 
+            pictureBox1.BackColor = SystemColors.ActiveCaptionText;
+            pictureBox1.Location = new Point(265, 287);
+            pictureBox1.Name = "pictureBox1";
+            pictureBox1.Size = new Size(256, 136);
+            pictureBox1.TabIndex = 13;
+            pictureBox1.TabStop = false;
+            // 
+            // pictureBoxSrcData
+            // 
+            pictureBoxSrcData.Location = new Point(527, 287);
+            pictureBoxSrcData.Name = "pictureBoxSrcData";
+            pictureBoxSrcData.Size = new Size(256, 136);
+            pictureBoxSrcData.TabIndex = 11;
+            pictureBoxSrcData.TabStop = false;
             // 
             // buttonXex
             // 
@@ -271,11 +316,102 @@
             checkBoxAutoUpdate.Text = "Autoupdate";
             checkBoxAutoUpdate.UseVisualStyleBackColor = true;
             // 
+            // buttonAlpaCentauriAI
+            // 
+            buttonAlpaCentauriAI.Enabled = false;
+            buttonAlpaCentauriAI.Location = new Point(12, 384);
+            buttonAlpaCentauriAI.Name = "buttonAlpaCentauriAI";
+            buttonAlpaCentauriAI.Size = new Size(128, 29);
+            buttonAlpaCentauriAI.TabIndex = 23;
+            buttonAlpaCentauriAI.Text = "Alpa Centauri AI";
+            buttonAlpaCentauriAI.UseVisualStyleBackColor = true;
+            buttonAlpaCentauriAI.Click += buttonAlpaCentauriAI_Click;
+            // 
+            // label2
+            // 
+            label2.AutoSize = true;
+            label2.Location = new Point(145, 384);
+            label2.Name = "label2";
+            label2.Size = new Size(26, 15);
+            label2.TabIndex = 24;
+            label2.Text = "Diff";
+            // 
+            // numericUpDownPopulation
+            // 
+            numericUpDownPopulation.Location = new Point(93, 427);
+            numericUpDownPopulation.Maximum = new decimal(new int[] { 200, 0, 0, 0 });
+            numericUpDownPopulation.Minimum = new decimal(new int[] { 4, 0, 0, 0 });
+            numericUpDownPopulation.Name = "numericUpDownPopulation";
+            numericUpDownPopulation.Size = new Size(57, 23);
+            numericUpDownPopulation.TabIndex = 25;
+            numericUpDownPopulation.Value = new decimal(new int[] { 20, 0, 0, 0 });
+            // 
+            // numericUpDownGeneration
+            // 
+            numericUpDownGeneration.Location = new Point(93, 456);
+            numericUpDownGeneration.Maximum = new decimal(new int[] { 200, 0, 0, 0 });
+            numericUpDownGeneration.Name = "numericUpDownGeneration";
+            numericUpDownGeneration.Size = new Size(57, 23);
+            numericUpDownGeneration.TabIndex = 26;
+            numericUpDownGeneration.Value = new decimal(new int[] { 20, 0, 0, 0 });
+            // 
+            // label3
+            // 
+            label3.AutoSize = true;
+            label3.Location = new Point(12, 435);
+            label3.Name = "label3";
+            label3.Size = new Size(65, 15);
+            label3.TabIndex = 27;
+            label3.Text = "Population";
+            // 
+            // label4
+            // 
+            label4.AutoSize = true;
+            label4.Location = new Point(12, 458);
+            label4.Name = "label4";
+            label4.Size = new Size(65, 15);
+            label4.TabIndex = 28;
+            label4.Text = "Generation";
+            // 
+            // listViewPopulation
+            // 
+            listViewPopulation.Columns.AddRange(new ColumnHeader[] { columnHeader1 });
+            listViewPopulation.Location = new Point(167, 400);
+            listViewPopulation.MultiSelect = false;
+            listViewPopulation.Name = "listViewPopulation";
+            listViewPopulation.Size = new Size(237, 164);
+            listViewPopulation.TabIndex = 29;
+            listViewPopulation.UseCompatibleStateImageBehavior = false;
+            listViewPopulation.View = View.Details;
+            listViewPopulation.SelectedIndexChanged += listViewPopulation_SelectedIndexChanged;
+            // 
+            // columnHeader1
+            // 
+            columnHeader1.Width = 233;
+            // 
+            // buttonAlpaCentauriInit
+            // 
+            buttonAlpaCentauriInit.Location = new Point(12, 351);
+            buttonAlpaCentauriInit.Name = "buttonAlpaCentauriInit";
+            buttonAlpaCentauriInit.Size = new Size(128, 29);
+            buttonAlpaCentauriInit.TabIndex = 30;
+            buttonAlpaCentauriInit.Text = "Alpa Centauri Init";
+            buttonAlpaCentauriInit.UseVisualStyleBackColor = true;
+            buttonAlpaCentauriInit.Click += buttonAlpaCentauriInit_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(919, 536);
+            ClientSize = new Size(1210, 576);
+            Controls.Add(buttonAlpaCentauriInit);
+            Controls.Add(listViewPopulation);
+            Controls.Add(label4);
+            Controls.Add(label3);
+            Controls.Add(numericUpDownGeneration);
+            Controls.Add(numericUpDownPopulation);
+            Controls.Add(label2);
+            Controls.Add(buttonAlpaCentauriAI);
             Controls.Add(checkBoxAutoUpdate);
             Controls.Add(checkBoxInterlace);
             Controls.Add(checkBoxAutoscale);
@@ -304,6 +440,11 @@
             ((System.ComponentModel.ISupportInitialize)pictureBoxAtariMix).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxCharMask).EndInit();
             flowLayoutPanel1.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)pictureBoxAproxMix).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxSrcData).EndInit();
+            ((System.ComponentModel.ISupportInitialize)numericUpDownPopulation).EndInit();
+            ((System.ComponentModel.ISupportInitialize)numericUpDownGeneration).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -332,5 +473,17 @@
         private CheckBox checkBoxAutoscale;
         private CheckBox checkBoxInterlace;
         private CheckBox checkBoxAutoUpdate;
+        private Button buttonAlpaCentauriAI;
+        private Label label2;
+        private NumericUpDown numericUpDownPopulation;
+        private NumericUpDown numericUpDownGeneration;
+        private Label label3;
+        private Label label4;
+        private PictureBox pictureBoxAproxMix;
+        private PictureBox pictureBoxSrcData;
+        private PictureBox pictureBox1;
+        private ListView listViewPopulation;
+        private Button buttonAlpaCentauriInit;
+        private ColumnHeader columnHeader1;
     }
 }
