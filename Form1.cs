@@ -5,6 +5,7 @@ namespace AlterLinePictureAproximator
     using System.CodeDom;
     using System.Drawing;
     using System.Globalization;
+    using System.Net.Security;
     using System.Numerics;
     using System.Reflection;
     using System.Runtime.InteropServices;
@@ -33,7 +34,11 @@ namespace AlterLinePictureAproximator
         public AtariColorPicker atariColorPicker = new AtariColorPicker();
         public int[,] mask;
         public int[,,] bitmap;
-        public byte[,,] srcChannelMatrix;   //matrix containing RGB channels of srouce image
+        public byte[,,] srcChannelMatrix;   //matrix containing RGB channels of source image
+        public int[,] bit8map;
+        public Color[] palette8 = new Color[256];
+        public int[,] customP8Match = new int[256,2];   //reset every custom palette change
+        public double[,] customP8MatchDist = new double[256, 2];    ////reset every custom palette change
         public List<AlpaItem> alpaItems = new List<AlpaItem>();
         public Random rand = new Random();
         public int totalPixels;
@@ -220,9 +225,11 @@ namespace AlterLinePictureAproximator
             int[,,] delta_matrix = new int[width + 1, height + 1, 3];
             diff_matrix = new int[width + 1, height + 1, 2];
             //bitmap = new int[width, height, 2];
+            Array.Clear(customP8Match);
+            Array.Clear(customP8MatchDist);
             for (int z = 0; z < 2; z++)
             {
-                delta_matrix.Initialize();
+                Array.Clear(delta_matrix);
                 for (int y = 0; y < srcChannelMatrix.GetLength(1); y++)
                 {
                     for (int x = 0; x < srcChannelMatrix.GetLength(0); x++)
@@ -231,8 +238,16 @@ namespace AlterLinePictureAproximator
                         int[] channel = new int[3]{srcChannelMatrix[x,y,0] + delta_matrix[x,y,0],
                                                srcChannelMatrix[x,y,1] + delta_matrix[x,y,1],
                                                srcChannelMatrix[x,y,2] + delta_matrix[x,y,2]};
-                        Color srcPlusDelta = Color.FromArgb(Clamp256(channel[0]), Clamp256(channel[1]), Clamp256(channel[2]));
-                        int[] rtn = FindCustomClosest2(dither ? srcPlusDelta : Color.FromArgb(srcChannelMatrix[x, y, 0], srcChannelMatrix[x, y, 1], srcChannelMatrix[x, y, 2]), distanceMethod, z == 0 ? false : true);   //use "src" to disable error diffusion
+                        int[] rtn = new int[2];
+                        if (!checkBoxColorReduction.Checked)
+                        {
+                            Color srcPlusDelta = Color.FromArgb(Clamp256(channel[0]), Clamp256(channel[1]), Clamp256(channel[2]));
+                            rtn = FindCustomClosest2(dither ? srcPlusDelta : Color.FromArgb(srcChannelMatrix[x, y, 0], srcChannelMatrix[x, y, 1], srcChannelMatrix[x, y, 2]), distanceMethod, z == 0 ? false : true);   //use "src" to disable error diffusion
+                        }
+                        else
+                        {
+                            rtn = FindCustomClosest2Reduced(bit8map[x,y], distanceMethod, z == 0 ? false : true);   //use "src" to disable error diffusion
+                        }
                         int index = rtn[0];
                         int diff = rtn[1];
                         diff_matrix[x, y, z] = diff; //(int)Distance(srcPlusDelta, customColors[index, z], distanceMethod);
@@ -308,6 +323,8 @@ namespace AlterLinePictureAproximator
             int[,,] delta_matrix = new int[b.Width + 1, b.Height + 1, 3];
             diff_matrix = new int[b.Width + 1, b.Height + 1, 2];
             bitmap = new int[b.Width, b.Height, 2];
+            Array.Clear(customP8Match);
+            Array.Clear(customP8MatchDist);
             for (int z = 0; z < 2; z++)
             {
                 Array.Clear(delta_matrix);
@@ -319,8 +336,16 @@ namespace AlterLinePictureAproximator
                         int[] channel = new int[3]{srcChannelMatrix[x,y,0] + delta_matrix[x,y,0],
                                                srcChannelMatrix[x,y,1] + delta_matrix[x,y,1],
                                                srcChannelMatrix[x,y,2] + delta_matrix[x,y,2]};
-                        Color srcPlusDelta = Color.FromArgb(Clamp256(channel[0]), Clamp256(channel[1]), Clamp256(channel[2]));
-                        int[] rtn = FindCustomClosest2(dither ? srcPlusDelta : Color.FromArgb(srcChannelMatrix[x, y, 0], srcChannelMatrix[x, y, 1], srcChannelMatrix[x, y, 2]), distanceMethod, z == 0 ? false : true);   //use "src" to disable error diffusion
+                        int[] rtn = new int[2];
+                        if (!checkBoxColorReduction.Checked)
+                        {
+                            Color srcPlusDelta = Color.FromArgb(Clamp256(channel[0]), Clamp256(channel[1]), Clamp256(channel[2]));
+                            rtn = FindCustomClosest2(dither ? srcPlusDelta : Color.FromArgb(srcChannelMatrix[x, y, 0], srcChannelMatrix[x, y, 1], srcChannelMatrix[x, y, 2]), distanceMethod, z == 0 ? false : true);   //use "src" to disable error diffusion
+                        }
+                        else
+                        {
+                            rtn = FindCustomClosest2Reduced(bit8map[x, y], distanceMethod, z == 0 ? false : true);   //use "src" to disable error diffusion
+                        }
                         int index = rtn[0];
                         int diff = rtn[1];
                         diff_matrix[x, y, z] = diff; //(int)Distance(srcPlusDelta, customColors[index, z], distanceMethod);
@@ -427,8 +452,36 @@ namespace AlterLinePictureAproximator
             }
             return dist;
         }
+
+        private int[] FindCustomClosest2Reduced(int p8index, int distanceMethod, bool inverse)
+        {
+            int inv = inverse ? 1 : 0;
+            double mindist = double.MaxValue;
+            int index = customP8Match[p8index, inv] - 1;
+            if (index == -1)
+            {
+                for (byte i = 0; i < 16; i++)
+                {
+                    double dist = Distance(palette8[p8index], customColors[i, inverse ? 1 : 0], distanceMethod);
+                    if (dist < mindist)
+                    {
+                        mindist = dist;
+                        index = i;
+                    }
+                }
+                customP8Match[p8index, inv] = (byte)(index + 1);
+                customP8MatchDist[p8index, inv] = mindist;
+            }
+            else
+            {
+                mindist = customP8MatchDist[p8index, inv];
+            }
+            return new int[2] { index, (int)mindist };
+        }
+
         private int[] FindCustomClosest2(Color color, int distanceMethod, bool inverse)
         {
+            return new int[2] { 0, 0 };
             double mindist = double.MaxValue;
             int index = paletteMatch[color.R, color.G, color.B, inverse ? 1 : 0] - 1;
             if (index < 0)
@@ -908,9 +961,9 @@ namespace AlterLinePictureAproximator
             public int Amount { get; set; }
         }
 
-        public class BinarySpatialParitioningNode
+        public class BinarySpatialPartitioningNode
         {
-            public BinarySpatialParitioningNode(List<RGBHisto> colors)
+            public BinarySpatialPartitioningNode(List<RGBHisto> colors)
             {
                 Colors = colors;
             }
@@ -954,15 +1007,15 @@ namespace AlterLinePictureAproximator
                 histoList.Add(item);
             }
             //binary spatial partitioning of the palette
-            List<BinarySpatialParitioningNode> nodes = new List<BinarySpatialParitioningNode>();
-            BinarySpatialParitioningNode initNode = new BinarySpatialParitioningNode(histoList);
+            List<BinarySpatialPartitioningNode> nodes = new List<BinarySpatialPartitioningNode>();
+            BinarySpatialPartitioningNode initNode = new BinarySpatialPartitioningNode(histoList);
             nodes.Add(initNode);
 
             for (int i = 0; i < 8; i++)
             {
                 int colorPlane = i % 3;
-                List<BinarySpatialParitioningNode> newNodes = new List<BinarySpatialParitioningNode>();
-                foreach (BinarySpatialParitioningNode node in nodes)
+                List<BinarySpatialPartitioningNode> newNodes = new List<BinarySpatialPartitioningNode>();
+                foreach (BinarySpatialPartitioningNode node in nodes)
                 {
                     List<RGBHisto> sorted = null;
                     switch (colorPlane)
@@ -984,14 +1037,14 @@ namespace AlterLinePictureAproximator
                     node.ColorPlane = colorPlane; */
 
 
-                    newNodes.Add(new BinarySpatialParitioningNode(sorted.GetRange(0, node.Colors.Count / 2)));
-                    newNodes.Add(new BinarySpatialParitioningNode(sorted.GetRange(node.Colors.Count / 2, node.Colors.Count / 2)));
+                    newNodes.Add(new BinarySpatialPartitioningNode(sorted.GetRange(0, node.Colors.Count / 2)));
+                    newNodes.Add(new BinarySpatialPartitioningNode(sorted.GetRange(node.Colors.Count / 2, node.Colors.Count - node.Colors.Count / 2)));
                 }
                 nodes = newNodes;
             }
             List<Color> palette256 = new List<Color>();
             //weighted palette generation
-            for (int i = 0; i < 256; i++ )
+            for (int i = 0; i < 256; i++)
             {
                 int r = 0;
                 int g = 0;
@@ -999,17 +1052,28 @@ namespace AlterLinePictureAproximator
                 int amountTotal = 0;
                 foreach (RGBHisto item in nodes[i].Colors)
                 {
-                    r += item.R*item.Amount; 
-                    g += item.G*item.Amount; 
-                    b += item.B*item.Amount;
+                    r += item.R * item.R * item.Amount;
+                    g += item.G * item.G * item.Amount;
+                    b += item.B * item.B * item.Amount;
                     amountTotal += item.Amount;
                 }
-                r /= amountTotal;
-                g /= amountTotal;
-                b /= amountTotal;
-                palette256.Add(Color.FromArgb(r, g, b));
+                if (amountTotal == 0)
+                {
+                    palette256.Add(Color.Black);
+                    palette8[i] = Color.Black;
+                }
+                else
+                {
+                    r /= amountTotal;
+                    g /= amountTotal;
+                    b /= amountTotal;
+                    Color col = Color.FromArgb((int)Math.Sqrt(r), (int)Math.Sqrt(g), (int)Math.Sqrt(b));
+                    palette256.Add(col);
+                    palette8[i] = col;
+                }
             }
             //palette optimized picture drawing
+            bit8map = new int[width, height];
             Bitmap srcBmp = (Bitmap)pictureBoxSource.Image;
             Bitmap tgtBmp = new Bitmap(width*2,height*2);
             //int width = srcChannelMatrix.GetLength(0);
@@ -1032,7 +1096,10 @@ namespace AlterLinePictureAproximator
                     tgtBmp.SetPixel(x * 2 + 1, y * 2, palette256[targetColorIndex]);
                     tgtBmp.SetPixel(x * 2, y * 2 + 1, palette256[targetColorIndex]);
                     tgtBmp.SetPixel(x * 2 + 1, y * 2 + 1, palette256[targetColorIndex]);
-
+                    //srcChannelMatrix[x, y, 0] = palette256[targetColorIndex].R;
+                    //srcChannelMatrix[x, y, 1] = palette256[targetColorIndex].G;
+                    //srcChannelMatrix[x, y, 2] = palette256[targetColorIndex].B;
+                    bit8map[x, y] = targetColorIndex;
                 }
             pictureBoxSrcReduced.Image = tgtBmp;
             pictureBoxSrcReduced.Size = tgtBmp.Size;
