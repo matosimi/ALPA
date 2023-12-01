@@ -37,7 +37,7 @@ namespace AlterLinePictureAproximator
         public byte[,,] srcChannelMatrix;   //matrix containing RGB channels of source image
         public int[,] bit8map;
         public Color[] palette8 = new Color[256];
-        public int[,] customP8Match = new int[256,2];   //reset every custom palette change
+        public int[,] customP8Match = new int[256, 2];   //reset every custom palette change
         public double[,] customP8MatchDist = new double[256, 2];    ////reset every custom palette change
         public List<AlpaItem> alpaItems = new List<AlpaItem>();
         public Random rand = new Random();
@@ -45,11 +45,10 @@ namespace AlterLinePictureAproximator
         public byte[,,,] paletteMatch = new byte[256, 256, 256, 2];
         public class AlpaItem
         {
-            public double diff { get; set; }
-            public double ppdiff { get; set; }
-            //public int[,] mask { get; set; }
-            public byte[] line0 { get; set; }
-            public byte[] line1 { get; set; }
+            public double Diff { get; set; }
+            public double Ppdiff { get; set; }
+            public byte[] Line0 { get; set; }
+            public byte[] Line1 { get; set; }
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -58,10 +57,11 @@ namespace AlterLinePictureAproximator
             Vector4 lab = Conversion.RGBToLab(rgb);
             Vector4 rgb2 = Conversion.LabToRGB(lab);*/
             LoadPalette();
-            CreatePal(false);
+            CreatePal(comboBoxAverMethod.SelectedIndex);
             comboBoxDistance.SelectedIndex = 0;
             comboBoxDither.SelectedIndex = 0;
-            PictureToChannel(checkBoxSimpleAvg.Checked);
+            comboBoxAverMethod.SelectedIndex = 0;
+            PictureToChannel(comboBoxAverMethod.SelectedIndex);
             ReduceColors();
         }
 
@@ -85,23 +85,12 @@ namespace AlterLinePictureAproximator
             byte b = (byte)Clamp256((298 * C + 516 * D + 128) >> 8);
             return new byte[3] { r, g, b };
         }
-        /*
-            }
-#define RGB2U(R, G, B) CLIP(( ( -38 * (R) -  74 * (G) + 112 * (B) + 128) >> 8) + 128)
-#define RGB2V(R, G, B) CLIP(( ( 112 * (R) -  94 * (G) -  18 * (B) + 128) >> 8) + 128)
-    // YUV -> RGB
-#define C(Y) ( (Y) - 16  )
-#define D(U) ( (U) - 128 )
-#define E(V) ( (V) - 128 )
-#define YUV2R(Y, U, V) CLIP(( 298 * C(Y)              + 409 * E(V) + 128) >> 8)
-#define YUV2G(Y, U, V) CLIP(( 298 * C(Y) - 100 * D(U) - 208 * E(V) + 128) >> 8)
-#define YUV2B(Y, U, V) CLIP(( 298 * C(Y) + 516 * D(U)              + 128) >> 8)
-        */
+    
         private Color AverageColor(Color c1, Color c2, int method)
         {
             switch (method)
             {
-                case 0: //simple
+                case 0: //rgb simple
                     int r = (c1.R + c2.R) / 2;
                     int g = (c1.G + c2.G) / 2;
                     int b = (c1.B + c2.B) / 2;
@@ -122,22 +111,34 @@ namespace AlterLinePictureAproximator
             }
             return Color.AliceBlue;
         }
-        private Color AverageColor(int c1, int c2, bool simple)
+        private Color AverageColor(int c1, int c2, int method)
         {
-            if (!simple)
+
+            switch (method)
             {
-                double r2 = (Math.Pow((int)atariPalRgb[c1 * 3], 2) + Math.Pow((int)atariPalRgb[c2 * 3], 2)) / 2;
-                double g2 = (Math.Pow((int)atariPalRgb[c1 * 3 + 1], 2) + Math.Pow((int)atariPalRgb[c2 * 3 + 1], 2)) / 2;
-                double b2 = (Math.Pow((int)atariPalRgb[c1 * 3 + 2], 2) + Math.Pow((int)atariPalRgb[c2 * 3 + 2], 2)) / 2;
-                return Color.FromArgb(Clamp256((int)Math.Sqrt(r2)), Clamp256((int)Math.Sqrt(g2)), Clamp256((int)Math.Sqrt(b2)));
+                case 0: //rgb simple
+                    int r = ((int)atariPalRgb[c1 * 3] + (int)atariPalRgb[c2 * 3]) / 2;
+                    int g = ((int)atariPalRgb[c1 * 3 + 1] + (int)atariPalRgb[c2 * 3 + 1]) / 2;
+                    int b = ((int)atariPalRgb[c1 * 3 + 2] + (int)atariPalRgb[c2 * 3 + 2]) / 2;
+                    return Color.FromArgb(r, g, b);
+                case 1: //rgb euclid
+                    double r2 = (atariPalRgb[c1 * 3] * atariPalRgb[c1 * 3] + atariPalRgb[c2 * 3] * atariPalRgb[c2 * 3]) / 2;
+                    double g2 = (atariPalRgb[c1 * 3 + 1] * atariPalRgb[c1 * 3 + 1] + atariPalRgb[c2 * 3 + 1] * atariPalRgb[c2 * 3 + 1]) / 2;
+                    double b2 = (atariPalRgb[c1 * 3 + 2] * atariPalRgb[c1 * 3 + 2] + atariPalRgb[c2 * 3 + 2] * atariPalRgb[c2 * 3 + 2]) / 2;
+                    return Color.FromArgb(Clamp256((int)Math.Sqrt(r2)), Clamp256((int)Math.Sqrt(g2)), Clamp256((int)Math.Sqrt(b2)));
+                case 2: //yuv euclid
+                    byte[] z1 = RGB2YUV(atariPalRgb[c1 * 3], atariPalRgb[c1 * 3 + 1], atariPalRgb[c1 * 3 + 2]);
+                    byte[] z2 = RGB2YUV(atariPalRgb[c2 * 3], atariPalRgb[c2 * 3 + 1], atariPalRgb[c2 * 3 + 2]);
+                    int y = (z1[0] * z1[0] + z2[0] * z2[0]) / 2;
+                    int u = (z1[1] * z1[1] + z2[1] * z2[1]) / 2;
+                    int v = (z1[2] * z1[2] + z2[2] * z2[2]) / 2;
+                    byte[] ave = YUV2RGB((byte)Clamp256((int)Math.Sqrt(y)), (byte)Clamp256((int)Math.Sqrt(u)), (byte)Clamp256((int)Math.Sqrt(v)));
+                    return Color.FromArgb(ave[0], ave[1], ave[2]);
             }
-            int r = ((int)atariPalRgb[c1 * 3] + (int)atariPalRgb[c2 * 3]) / 2;
-            int g = ((int)atariPalRgb[c1 * 3 + 1] + (int)atariPalRgb[c2 * 3 + 1]) / 2;
-            int b = ((int)atariPalRgb[c1 * 3 + 2] + (int)atariPalRgb[c2 * 3 + 2]) / 2;
-            return Color.FromArgb(r, g, b);
+            return Color.Yellow;
         }
 
-        private void CreatePal(bool simple, bool noDraw = false)
+        private void CreatePal(int method, bool noDraw = false)
         {
             customColors = new Color[16, 2];
             for (int z = 0; z < 2; z++)
@@ -149,9 +150,9 @@ namespace AlterLinePictureAproximator
                 for (int a = 0; a < 4; a++)
                 {
                     for (int b = 0; b < 4; b++)
-                        customColors[a * 4 + b, z] = AverageColor(l0[a], l1[b], simple);
-                    cline0[a, z] = AverageColor(l0[a], l0[a], simple);
-                    cline1[a, z] = AverageColor(l1[a], l1[a], simple);
+                        customColors[a * 4 + b, z] = AverageColor(l0[a], l1[b], method);
+                    cline0[a, z] = AverageColor(l0[a], l0[a], method);
+                    cline1[a, z] = AverageColor(l1[a], l1[a], method);
                 }
             }
 
@@ -180,7 +181,7 @@ namespace AlterLinePictureAproximator
 
         private void ButtonApproximate_Click(object sender, EventArgs e)
         {
-            DoConvert(checkBoxSimpleAvg.Checked, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
+            DoConvert(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
         }
 
         public static int Clamp(int value, int min, int max)
@@ -193,7 +194,7 @@ namespace AlterLinePictureAproximator
             return (value < 0) ? 0 : (value > 255) ? 255 : value;
         }
 
-        private void PictureToChannel(bool simple)
+        private void PictureToChannel(int method)
         {
             Bitmap b = (Bitmap)pictureBoxSource.Image;
             Bitmap t = new Bitmap(pictureBoxSource.Image.Width * 2, pictureBoxSource.Image.Height);
@@ -202,7 +203,7 @@ namespace AlterLinePictureAproximator
             {
                 for (int x = 0; x < pictureBoxSource.Image.Width; x++)
                 {
-                    Color src = AverageColor(b.GetPixel(x, y * 2), b.GetPixel(x, y * 2 + 1), 2);
+                    Color src = AverageColor(b.GetPixel(x, y * 2), b.GetPixel(x, y * 2 + 1), method);
                     srcChannelMatrix[x, y, 0] = src.R;
                     srcChannelMatrix[x, y, 1] = src.G;
                     srcChannelMatrix[x, y, 2] = src.B;
@@ -218,7 +219,7 @@ namespace AlterLinePictureAproximator
             totalPixels = srcChannelMatrix.Length / 3;
         }
 
-        private double CalcDiff(bool simple, int distanceMethod, bool dither, int ditherMethod = 0)
+        private double CalcDiff(int averMethod, int distanceMethod, bool dither, int ditherMethod = 0)
         {
             int width = srcChannelMatrix.GetLength(0);
             int height = srcChannelMatrix.GetLength(1);
@@ -246,7 +247,7 @@ namespace AlterLinePictureAproximator
                         }
                         else
                         {
-                            rtn = FindCustomClosest2Reduced(bit8map[x,y], distanceMethod, z == 0 ? false : true);   //use "src" to disable error diffusion
+                            rtn = FindCustomClosest2Reduced(bit8map[x, y], distanceMethod, z == 0 ? false : true);   //use "src" to disable error diffusion
                         }
                         int index = rtn[0];
                         int diff = rtn[1];
@@ -315,7 +316,7 @@ namespace AlterLinePictureAproximator
             return totalDiff;
         }
 
-        private void DoConvert(bool simple, int distanceMethod, bool dither, int ditherMethod = 0)
+        private void DoConvert(int method, int distanceMethod, bool dither, int ditherMethod = 0)
         {
             Bitmap b = (Bitmap)pictureBoxSource.Image;
             Bitmap t = new Bitmap(b.Width * 2, b.Height);
@@ -448,7 +449,6 @@ namespace AlterLinePictureAproximator
                     break;
                 default:
                     throw new NotImplementedException();
-                    break;
             }
             return dist;
         }
@@ -481,7 +481,7 @@ namespace AlterLinePictureAproximator
 
         private int[] FindCustomClosest2(Color color, int distanceMethod, bool inverse)
         {
-            return new int[2] { 0, 0 };
+            //return new int[2] { 0, 0 };
             double mindist = double.MaxValue;
             int index = paletteMatch[color.R, color.G, color.B, inverse ? 1 : 0] - 1;
             if (index < 0)
@@ -514,7 +514,7 @@ namespace AlterLinePictureAproximator
 
         private float RGByuvDistance(Color col1, Color col2)
         {
-            uint DISTANCE_MAX = 0xffffffff;
+            //uint DISTANCE_MAX = 0xffffffff;
 
             int dr = col2.R - col1.R;
             int dg = col2.G - col1.G;
@@ -526,15 +526,15 @@ namespace AlterLinePictureAproximator
 
             float d = dy * dy + du * du + dv * dv;
 
-            if (d > (float)DISTANCE_MAX)
+            //if (d > (float)DISTANCE_MAX)
 
-                d = (float)DISTANCE_MAX;
+            //    d = (float)DISTANCE_MAX;
             return d;
         }
 
         private float RGBEuclidianDistance(Color col1, Color col2)
         {
-            uint DISTANCE_MAX = 0xffffffff;
+            //uint DISTANCE_MAX = 0xffffffff;
 
             int dr = col2.R - col1.R;
             int dg = col2.G - col1.G;
@@ -542,9 +542,9 @@ namespace AlterLinePictureAproximator
 
             float d = dr * dr + dg * dg + db * db;
 
-            if (d > (float)DISTANCE_MAX)
+            //if (d > (float)DISTANCE_MAX)
 
-                d = (float)DISTANCE_MAX;
+            //    d = (float)DISTANCE_MAX;
             return d;
         }
 
@@ -559,7 +559,7 @@ namespace AlterLinePictureAproximator
 
         private float YUVEuclidianDistance(Color c1, Color c2)
         {
-            uint DISTANCE_MAX = 0xffffffff;
+            //uint DISTANCE_MAX = 0xffffffff;
             byte[] z1 = RGB2YUV(c1.R, c1.G, c1.B);
             byte[] z2 = RGB2YUV(c2.R, c2.G, c2.B);
             int dy = z1[0] - z2[0];
@@ -568,22 +568,18 @@ namespace AlterLinePictureAproximator
 
             float d = dy * dy + du * du + dv * dv;
 
-            if (d > (float)DISTANCE_MAX)
+            //if (d > (float)DISTANCE_MAX)
 
-                d = (float)DISTANCE_MAX;
+            //    d = (float)DISTANCE_MAX;
             return d;
-        }
-
-        private void checkBox1_CheckedChanged(object sender, EventArgs e)
-        {
-
         }
 
         private void ButtonMixIt_Click(object sender, EventArgs e)
         {
             double totalDiffMix = MixIt();
-            //double totalDiff = CalcDiff(checkBoxSimpleAvg.Checked, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
+            //double totalDiff = CalcDiff(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
             //buttonMixIt.Text = $"Mix:{((int)(totalDiff/totalPixels)).ToString()} Calc:{((int)(totalDiffMix/totalPixels)).ToString()}";
+            labelDiff.Text = $"Diff: {(int)(totalDiffMix/totalPixels)}";
         }
 
         private double MixIt()
@@ -636,28 +632,30 @@ namespace AlterLinePictureAproximator
             return totalDiff;
         }
 
-        private void checkBoxSimple_CheckedChanged(object sender, EventArgs e)
-        {
-            PictureToChannel(checkBoxSimpleAvg.Checked);
-            CreatePal(checkBoxSimpleAvg.Checked);
-        }
-
         private void checkBoxUseDither_CheckedChanged(object sender, EventArgs e)
         {
             comboBoxDither.Enabled = checkBoxUseDither.Checked;
         }
 
-        private void buttonOpen_Click(object sender, EventArgs e)
+        private void ButtonOpen_Click(object sender, EventArgs e)
         {
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
+                Bitmap bmp = new Bitmap(Bitmap.FromFile(openFileDialog1.FileName));
+                if (!checkBoxAutoscale.Checked && (bmp.Width > 256 || bmp.Height > 192))
+                {
+                    if (MessageBox.Show($"Picture {openFileDialog1.FileName} has resolution {bmp.Width}x{bmp.Height} pixels. Would you like to enable autoscale?", "Input picture seems too big", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1) == DialogResult.Yes)
+                    {
+                        checkBoxAutoscale.Checked = true;
+                    }
+                }
+
                 if (!checkBoxAutoscale.Checked)
                 {
-                    pictureBoxSource.Image = new Bitmap(Bitmap.FromFile(openFileDialog1.FileName));
+                    pictureBoxSource.Image = bmp;
                 }
                 else
                 {
-                    Bitmap bmp = (Bitmap)Bitmap.FromFile(openFileDialog1.FileName);
                     float ratio = bmp.Width / 256f;
                     int height = (int)(bmp.Height / ratio);
                     Bitmap scaled = new Bitmap(256, 192);
@@ -671,10 +669,11 @@ namespace AlterLinePictureAproximator
                     g.Dispose();
                     bmp.Dispose();
                     scaled.Dispose();
-
                 }
-                PictureToChannel(checkBoxSimpleAvg.Checked);
-                CreatePal(checkBoxSimpleAvg.Checked);
+                PictureToChannel(comboBoxAverMethod.SelectedIndex);
+                CreatePal(comboBoxAverMethod.SelectedIndex);
+                if (checkBoxColorReduction.Checked)
+                    ReduceColors();
             }
         }
 
@@ -694,24 +693,26 @@ namespace AlterLinePictureAproximator
                     }
                 }
                 line1[1] = line0[1]; //common color
-                CreatePal(checkBoxSimpleAvg.Checked, true);
-                double totalDiff = CalcDiff(checkBoxSimpleAvg.Checked, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
+                CreatePal(comboBoxAverMethod.SelectedIndex, true);
+                double totalDiff = CalcDiff(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
                 AlpaItem ai = new AlpaItem();
-                ai.diff = totalDiff;
-                ai.ppdiff = totalDiff / totalPixels;
-                ai.line0 = (byte[])line0.Clone();
-                ai.line1 = (byte[])line1.Clone();
+                ai.Diff = totalDiff;
+                ai.Ppdiff = totalDiff / totalPixels;
+                ai.Line0 = (byte[])line0.Clone();
+                ai.Line1 = (byte[])line1.Clone();
                 alpaItems.Add(ai);
             }
-            List<AlpaItem> sorted = alpaItems.OrderBy(d => d.diff).ToList();
+            List<AlpaItem> sorted = alpaItems.OrderBy(d => d.Diff).ToList();
             if (alpaItems.Count > population / 4)
                 sorted.RemoveRange(population / 4 - 1, alpaItems.Count - (population / 4) - 1);
             alpaItems = sorted;
-            listViewPopulation.Items.Clear();
+            ListPopulation(); // fill up the listview
         }
 
         private void Centauri(int generations, int population)
         {
+            progressBarAI.Value = 0;
+            progressBarAI.Maximum = generations;
             //fix population not dividable by 4
             if (population % 4 != 0)
             {
@@ -729,10 +730,10 @@ namespace AlterLinePictureAproximator
                 }
                 line1[1] = line0[1]; //common color
                 AlpaItem ai = new AlpaItem();
-                ai.diff = Double.MaxValue;
-                ai.ppdiff = Double.MaxValue;
-                ai.line0 = (byte[])line0.Clone();
-                ai.line1 = (byte[])line1.Clone();
+                ai.Diff = Double.MaxValue;
+                ai.Ppdiff = Double.MaxValue;
+                ai.Line0 = (byte[])line0.Clone();
+                ai.Line1 = (byte[])line1.Clone();
                 alpaItems.Add(ai);
             }
 
@@ -740,35 +741,40 @@ namespace AlterLinePictureAproximator
             for (int i = 0; i < generations; i++)
             {
                 CentauriGeneration(population);
-                Array.Copy(alpaItems[0].line0, line0, line0.Length);
-                Array.Copy(alpaItems[0].line1, line1, line1.Length);
+                Array.Copy(alpaItems[0].Line0, line0, line0.Length);
+                Array.Copy(alpaItems[0].Line1, line1, line1.Length);
                 //line0 = alpaItems[0].line0;
                 //line1 = alpaItems[0].line1;
-
-                if (checkBoxAutoUpdate.Checked && (bestDiff > alpaItems[0].ppdiff)) //show pgogress
+                labelDiff.Text = $"Diff: {(int)alpaItems[0].Ppdiff}";
+                if (checkBoxAutoUpdate.Checked && (bestDiff > alpaItems[0].Ppdiff)) //show progress
                 {
-                    bestDiff = alpaItems[0].ppdiff;
-                    CreatePal(checkBoxSimpleAvg.Checked, false);
-                    DoConvert(checkBoxSimpleAvg.Checked, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
+                    bestDiff = alpaItems[0].Ppdiff;
+                    CreatePal(comboBoxAverMethod.SelectedIndex, false);
+                    DoConvert(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
                     MixIt();
                 }
                 else
                 {
-                    CreatePal(checkBoxSimpleAvg.Checked, true);
+                    CreatePal(comboBoxAverMethod.SelectedIndex, true);
                 }
-                buttonAlpaCentauriAI.Text = i.ToString();
+                progressBarAI.Value = i + 1;
+                labelGenerationDone.Text = $"{i + 1}";
                 this.Refresh();
             }
+            ListPopulation(); // fill up the listview
+            
+            CreatePal(comboBoxAverMethod.SelectedIndex, false);
+            DoConvert(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
+            MixIt();
+        }
 
-            // fill up the listview
+        private void ListPopulation()
+        {
             listViewPopulation.Items.Clear();
             for (int i = 0; i < alpaItems.Count; i++)
             {
-                listViewPopulation.Items.Add($"{i}: {((int)alpaItems[i].ppdiff).ToString()}");
+                listViewPopulation.Items.Add($"{i}: {((int)alpaItems[i].Ppdiff).ToString()}");
             }
-            CreatePal(checkBoxSimpleAvg.Checked, false);
-            DoConvert(checkBoxSimpleAvg.Checked, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
-            MixIt();
         }
 
         private void CentauriGeneration(int population)
@@ -777,24 +783,24 @@ namespace AlterLinePictureAproximator
                 for (int i = 0; i < population / 4; i++)
                 {
                     AlpaItem ai = new AlpaItem();
-                    Mutate(alpaItems[i].line0, alpaItems[i].line1, ai);
+                    Mutate(alpaItems[i].Line0, alpaItems[i].Line1, ai);
                     for (int k = 0; k < j; k++)
-                        Mutate(ai.line0, ai.line1, ai);
-                    Array.Copy(ai.line0, line0, line0.Length);
-                    Array.Copy(ai.line1, line1, line1.Length);
-                    CreatePal(checkBoxSimpleAvg.Checked, true);
-                    double totalDiff = CalcDiff(checkBoxSimpleAvg.Checked, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
-                    ai.diff = totalDiff;
-                    ai.ppdiff = totalDiff / totalPixels;
+                        Mutate(ai.Line0, ai.Line1, ai);
+                    Array.Copy(ai.Line0, line0, line0.Length);
+                    Array.Copy(ai.Line1, line1, line1.Length);
+                    CreatePal(comboBoxAverMethod.SelectedIndex, true);
+                    double totalDiff = CalcDiff(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
+                    ai.Diff = totalDiff;
+                    ai.Ppdiff = totalDiff / totalPixels;
                     alpaItems.Add(ai);
                 }
-            List<AlpaItem> sorted = alpaItems.OrderBy(d => d.diff).ToList();
+            List<AlpaItem> sorted = alpaItems.OrderBy(d => d.Diff).ToList();
             int amount = alpaItems.Count;
             if (amount > population / 4)
                 sorted.RemoveRange(population / 4 - 1, amount - (population / 4) - 1);
-            sorted = sorted.DistinctBy(d => d.diff).ToList();
+            sorted = sorted.DistinctBy(d => d.Diff).ToList();
             alpaItems = sorted;
-            label2.Text = alpaItems[0].ppdiff.ToString();
+
         }
 
         private void Mutate(byte[] srcline0, byte[] srcline1, AlpaItem ai)
@@ -836,8 +842,8 @@ namespace AlterLinePictureAproximator
                     break;
             }
             lineSec[1] = line[1];   //common color
-            ai.line0 = line;
-            ai.line1 = lineSec;
+            ai.Line0 = line;
+            ai.Line1 = lineSec;
         }
 
         private void pictureBoxPalette_MouseDown(object sender, MouseEventArgs e)
@@ -863,10 +869,10 @@ namespace AlterLinePictureAproximator
                             line0[remap[index]] = atariColorPicker.PickedColorIndex;
 
                     }
-                CreatePal(checkBoxSimpleAvg.Checked);
+                CreatePal(comboBoxAverMethod.SelectedIndex);
                 if (checkBoxAutoUpdate.Checked)
                 {
-                    DoConvert(checkBoxSimpleAvg.Checked, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
+                    DoConvert(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
                     MixIt();
                 }
             }
@@ -943,10 +949,10 @@ namespace AlterLinePictureAproximator
         {
             if (listViewPopulation.SelectedIndices.Count > 0)
             {
-                Array.Copy(alpaItems[listViewPopulation.SelectedIndices[0]].line0, line0, line0.Length);
-                Array.Copy(alpaItems[listViewPopulation.SelectedIndices[0]].line1, line1, line0.Length);
-                CreatePal(checkBoxSimpleAvg.Checked, false);
-                DoConvert(checkBoxSimpleAvg.Checked, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
+                Array.Copy(alpaItems[listViewPopulation.SelectedIndices[0]].Line0, line0, line0.Length);
+                Array.Copy(alpaItems[listViewPopulation.SelectedIndices[0]].Line1, line1, line0.Length);
+                CreatePal(comboBoxAverMethod.SelectedIndex, false);
+                DoConvert(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
                 MixIt();
             }
         }
@@ -968,21 +974,17 @@ namespace AlterLinePictureAproximator
                 Colors = colors;
             }
             public List<RGBHisto> Colors { get; set; }
-            public List<RGBHisto> Lo { get; set; }
-            public List<RGBHisto> Hi { get; set; }
-            public RGBHisto SplitColor { get; set; }
-            public int ColorPlane { get; set; }
         }
 
         private void ReduceColors()
         {
-         
-            Dictionary<int,int> histogram = new Dictionary<int,int>();
+
+            Dictionary<int, int> histogram = new Dictionary<int, int>();
             int width = srcChannelMatrix.GetLength(0);
             int height = srcChannelMatrix.GetLength(1);
             //create histogram
-            for (int y = 0; y < height;y++)
-                for (int x = 0; x < width;x++)
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
                 {
                     int rgb = ((srcChannelMatrix[x, y, 0] << 16)) | ((srcChannelMatrix[x, y, 1] << 8)) | (srcChannelMatrix[x, y, 2]);
 
@@ -999,8 +1001,8 @@ namespace AlterLinePictureAproximator
             foreach (int rgb in histogram.Keys)
             {
                 RGBHisto item = new RGBHisto();
-                item.R = (rgb >> 16)&0xFF;
-                item.G = (rgb >> 8)&0xFF;
+                item.R = (rgb >> 16) & 0xFF;
+                item.G = (rgb >> 8) & 0xFF;
                 item.B = rgb & 0xFF;
                 histogram.TryGetValue(rgb, out int amount);
                 item.Amount = amount;
@@ -1017,7 +1019,7 @@ namespace AlterLinePictureAproximator
                 List<BinarySpatialPartitioningNode> newNodes = new List<BinarySpatialPartitioningNode>();
                 foreach (BinarySpatialPartitioningNode node in nodes)
                 {
-                    List<RGBHisto> sorted = null;
+                    List<RGBHisto> sorted = new();
                     switch (colorPlane)
                     {
                         case 0:
@@ -1030,12 +1032,6 @@ namespace AlterLinePictureAproximator
                             sorted = node.Colors.OrderBy(d => d.B).ToList();
                             break;
                     }
-                    /*node.Lo = sorted.GetRange(0, node.Colors.Count / 2);
-                    node.Hi = sorted.GetRange(node.Colors.Count / 2, node.Colors.Count / 2);
-                    node.Colors.Clear();
-                    node.SplitColor = node.Hi[0];
-                    node.ColorPlane = colorPlane; */
-
 
                     newNodes.Add(new BinarySpatialPartitioningNode(sorted.GetRange(0, node.Colors.Count / 2)));
                     newNodes.Add(new BinarySpatialPartitioningNode(sorted.GetRange(node.Colors.Count / 2, node.Colors.Count - node.Colors.Count / 2)));
@@ -1075,7 +1071,7 @@ namespace AlterLinePictureAproximator
             //palette optimized picture drawing
             bit8map = new int[width, height];
             Bitmap srcBmp = (Bitmap)pictureBoxSource.Image;
-            Bitmap tgtBmp = new Bitmap(width*2,height*2);
+            Bitmap tgtBmp = new Bitmap(width * 2, height * 2);
             //int width = srcChannelMatrix.GetLength(0);
             //int height = srcChannelMatrix.GetLength(1);
             for (int y = 0; y < height; y++)
@@ -1107,10 +1103,24 @@ namespace AlterLinePictureAproximator
 
         private void checkBoxColorReduction_CheckedChanged(object sender, EventArgs e)
         {
-            if (checkBoxColorReduction.Checked)
+            bool check = checkBoxColorReduction.Checked;
+            checkBoxUseDither.Enabled = !check;
+            comboBoxDither.Enabled = !check;
+            if (check)
             {
                 ReduceColors();
             }
+        }
+
+        private void ComboBoxAverMethod_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            PictureToChannel(comboBoxAverMethod.SelectedIndex);
+            CreatePal(comboBoxAverMethod.SelectedIndex);
+        }
+
+        private void ComboBoxDistance_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            buttonAlpaCentauriAI.Enabled = false;
         }
     }
 }

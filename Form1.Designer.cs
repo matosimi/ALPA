@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             pictureBoxSource = new PictureBox();
             buttonApproximate = new Button();
@@ -39,7 +40,6 @@
             pictureBoxAtariMix = new PictureBox();
             buttonMixIt = new Button();
             pictureBoxCharMask = new PictureBox();
-            checkBoxSimpleAvg = new CheckBox();
             comboBoxDither = new ComboBox();
             checkBoxUseDither = new CheckBox();
             comboBoxDistance = new ComboBox();
@@ -55,7 +55,7 @@
             checkBoxInterlace = new CheckBox();
             checkBoxAutoUpdate = new CheckBox();
             buttonAlpaCentauriAI = new Button();
-            label2 = new Label();
+            labelDiff = new Label();
             numericUpDownPopulation = new NumericUpDown();
             numericUpDownGeneration = new NumericUpDown();
             label3 = new Label();
@@ -64,6 +64,11 @@
             columnHeader1 = new ColumnHeader();
             buttonAlpaCentauriInit = new Button();
             checkBoxColorReduction = new CheckBox();
+            comboBoxAverMethod = new ComboBox();
+            label5 = new Label();
+            toolTip1 = new ToolTip(components);
+            progressBarAI = new ProgressBar();
+            labelGenerationDone = new Label();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAprox).BeginInit();
@@ -149,6 +154,7 @@
             pictureBoxAtariMix.Size = new Size(256, 136);
             pictureBoxAtariMix.TabIndex = 8;
             pictureBoxAtariMix.TabStop = false;
+            toolTip1.SetToolTip(pictureBoxAtariMix, "Result (non interlace view)");
             // 
             // buttonMixIt
             // 
@@ -167,38 +173,29 @@
             pictureBoxCharMask.Size = new Size(256, 136);
             pictureBoxCharMask.TabIndex = 10;
             pictureBoxCharMask.TabStop = false;
-            // 
-            // checkBoxSimpleAvg
-            // 
-            checkBoxSimpleAvg.AutoSize = true;
-            checkBoxSimpleAvg.Location = new Point(171, 12);
-            checkBoxSimpleAvg.Name = "checkBoxSimpleAvg";
-            checkBoxSimpleAvg.Size = new Size(117, 19);
-            checkBoxSimpleAvg.TabIndex = 11;
-            checkBoxSimpleAvg.Text = "Simple averaging";
-            checkBoxSimpleAvg.UseVisualStyleBackColor = true;
-            checkBoxSimpleAvg.CheckedChanged += checkBoxSimple_CheckedChanged;
+            toolTip1.SetToolTip(pictureBoxCharMask, "Char inverse mask");
             // 
             // comboBoxDither
             // 
             comboBoxDither.DropDownStyle = ComboBoxStyle.DropDownList;
+            comboBoxDither.Enabled = false;
             comboBoxDither.FormattingEnabled = true;
             comboBoxDither.Items.AddRange(new object[] { "chess", "sierra", "F-S" });
-            comboBoxDither.Location = new Point(171, 62);
+            comboBoxDither.Location = new Point(167, 87);
             comboBoxDither.Name = "comboBoxDither";
-            comboBoxDither.Size = new Size(96, 23);
+            comboBoxDither.Size = new Size(109, 23);
             comboBoxDither.TabIndex = 13;
             // 
             // checkBoxUseDither
             // 
             checkBoxUseDither.AutoSize = true;
-            checkBoxUseDither.Checked = true;
-            checkBoxUseDither.CheckState = CheckState.Checked;
-            checkBoxUseDither.Location = new Point(171, 37);
+            checkBoxUseDither.Enabled = false;
+            checkBoxUseDither.Location = new Point(167, 66);
             checkBoxUseDither.Name = "checkBoxUseDither";
             checkBoxUseDither.Size = new Size(96, 19);
             checkBoxUseDither.TabIndex = 14;
             checkBoxUseDither.Text = "Use dithering";
+            toolTip1.SetToolTip(checkBoxUseDither, "cannot be used together with color reduction, its slower");
             checkBoxUseDither.UseVisualStyleBackColor = true;
             checkBoxUseDither.CheckedChanged += checkBoxUseDither_CheckedChanged;
             // 
@@ -206,16 +203,17 @@
             // 
             comboBoxDistance.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxDistance.FormattingEnabled = true;
-            comboBoxDistance.Items.AddRange(new object[] { "difference", "RGB euclid", "RGBYUV", "YUV euclid", "Weighted RGB" });
-            comboBoxDistance.Location = new Point(171, 124);
+            comboBoxDistance.Items.AddRange(new object[] { "RGB simple", "RGB euclid", "RGBYUV", "YUV euclid", "Weighted RGB" });
+            comboBoxDistance.Location = new Point(167, 145);
             comboBoxDistance.Name = "comboBoxDistance";
-            comboBoxDistance.Size = new Size(96, 23);
+            comboBoxDistance.Size = new Size(109, 23);
             comboBoxDistance.TabIndex = 15;
+            comboBoxDistance.SelectedIndexChanged += ComboBoxDistance_SelectedIndexChanged;
             // 
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(167, 98);
+            label1.Location = new Point(167, 127);
             label1.Name = "label1";
             label1.Size = new Size(100, 15);
             label1.TabIndex = 16;
@@ -229,7 +227,7 @@
             buttonOpen.TabIndex = 17;
             buttonOpen.Text = "Open";
             buttonOpen.UseVisualStyleBackColor = true;
-            buttonOpen.Click += buttonOpen_Click;
+            buttonOpen.Click += ButtonOpen_Click;
             // 
             // openFileDialog1
             // 
@@ -249,7 +247,7 @@
             flowLayoutPanel1.Dock = DockStyle.Right;
             flowLayoutPanel1.Location = new Point(410, 0);
             flowLayoutPanel1.Name = "flowLayoutPanel1";
-            flowLayoutPanel1.Size = new Size(800, 576);
+            flowLayoutPanel1.Size = new Size(800, 572);
             flowLayoutPanel1.TabIndex = 18;
             // 
             // pictureBoxAproxMix
@@ -259,6 +257,7 @@
             pictureBoxAproxMix.Size = new Size(256, 136);
             pictureBoxAproxMix.TabIndex = 12;
             pictureBoxAproxMix.TabStop = false;
+            toolTip1.SetToolTip(pictureBoxAproxMix, "Result (interlaced view)");
             // 
             // pictureBoxSrcReduced
             // 
@@ -268,6 +267,7 @@
             pictureBoxSrcReduced.Size = new Size(256, 136);
             pictureBoxSrcReduced.TabIndex = 13;
             pictureBoxSrcReduced.TabStop = false;
+            toolTip1.SetToolTip(pictureBoxSrcReduced, "Source image reduced to 256 colors");
             // 
             // pictureBoxSrcData
             // 
@@ -276,6 +276,7 @@
             pictureBoxSrcData.Size = new Size(256, 136);
             pictureBoxSrcData.TabIndex = 11;
             pictureBoxSrcData.TabStop = false;
+            toolTip1.SetToolTip(pictureBoxSrcData, "Source image");
             // 
             // buttonXex
             // 
@@ -290,11 +291,13 @@
             // checkBoxAutoscale
             // 
             checkBoxAutoscale.AutoSize = true;
+            checkBoxAutoscale.Checked = true;
+            checkBoxAutoscale.CheckState = CheckState.Checked;
             checkBoxAutoscale.Location = new Point(93, 213);
             checkBoxAutoscale.Name = "checkBoxAutoscale";
-            checkBoxAutoscale.Size = new Size(78, 19);
+            checkBoxAutoscale.Size = new Size(147, 19);
             checkBoxAutoscale.TabIndex = 20;
-            checkBoxAutoscale.Text = "Autoscale";
+            checkBoxAutoscale.Text = "Autoscale (shrink only)";
             checkBoxAutoscale.UseVisualStyleBackColor = true;
             // 
             // checkBoxInterlace
@@ -302,7 +305,7 @@
             checkBoxInterlace.AutoSize = true;
             checkBoxInterlace.Checked = true;
             checkBoxInterlace.CheckState = CheckState.Checked;
-            checkBoxInterlace.Location = new Point(311, 357);
+            checkBoxInterlace.Location = new Point(311, 351);
             checkBoxInterlace.Name = "checkBoxInterlace";
             checkBoxInterlace.Size = new Size(71, 19);
             checkBoxInterlace.TabIndex = 21;
@@ -330,14 +333,14 @@
             buttonAlpaCentauriAI.UseVisualStyleBackColor = true;
             buttonAlpaCentauriAI.Click += buttonAlpaCentauriAI_Click;
             // 
-            // label2
+            // labelDiff
             // 
-            label2.AutoSize = true;
-            label2.Location = new Point(145, 384);
-            label2.Name = "label2";
-            label2.Size = new Size(26, 15);
-            label2.TabIndex = 24;
-            label2.Text = "Diff";
+            labelDiff.AutoSize = true;
+            labelDiff.Location = new Point(145, 384);
+            labelDiff.Name = "labelDiff";
+            labelDiff.Size = new Size(26, 15);
+            labelDiff.TabIndex = 24;
+            labelDiff.Text = "Diff";
             // 
             // numericUpDownPopulation
             // 
@@ -347,7 +350,7 @@
             numericUpDownPopulation.Name = "numericUpDownPopulation";
             numericUpDownPopulation.Size = new Size(57, 23);
             numericUpDownPopulation.TabIndex = 25;
-            numericUpDownPopulation.Value = new decimal(new int[] { 20, 0, 0, 0 });
+            numericUpDownPopulation.Value = new decimal(new int[] { 40, 0, 0, 0 });
             // 
             // numericUpDownGeneration
             // 
@@ -356,7 +359,7 @@
             numericUpDownGeneration.Name = "numericUpDownGeneration";
             numericUpDownGeneration.Size = new Size(57, 23);
             numericUpDownGeneration.TabIndex = 26;
-            numericUpDownGeneration.Value = new decimal(new int[] { 20, 0, 0, 0 });
+            numericUpDownGeneration.Value = new decimal(new int[] { 40, 0, 0, 0 });
             // 
             // label3
             // 
@@ -372,9 +375,9 @@
             label4.AutoSize = true;
             label4.Location = new Point(12, 458);
             label4.Name = "label4";
-            label4.Size = new Size(65, 15);
+            label4.Size = new Size(70, 15);
             label4.TabIndex = 28;
-            label4.Text = "Generation";
+            label4.Text = "Generations";
             // 
             // listViewPopulation
             // 
@@ -390,6 +393,7 @@
             // 
             // columnHeader1
             // 
+            columnHeader1.Text = "Results ordered by diff.ascending";
             columnHeader1.Width = 233;
             // 
             // buttonAlpaCentauriInit
@@ -407,7 +411,7 @@
             checkBoxColorReduction.AutoSize = true;
             checkBoxColorReduction.Checked = true;
             checkBoxColorReduction.CheckState = CheckState.Checked;
-            checkBoxColorReduction.Location = new Point(171, 185);
+            checkBoxColorReduction.Location = new Point(167, 185);
             checkBoxColorReduction.Name = "checkBoxColorReduction";
             checkBoxColorReduction.Size = new Size(109, 19);
             checkBoxColorReduction.TabIndex = 31;
@@ -415,11 +419,52 @@
             checkBoxColorReduction.UseVisualStyleBackColor = true;
             checkBoxColorReduction.CheckedChanged += checkBoxColorReduction_CheckedChanged;
             // 
+            // comboBoxAverMethod
+            // 
+            comboBoxAverMethod.DropDownStyle = ComboBoxStyle.DropDownList;
+            comboBoxAverMethod.FormattingEnabled = true;
+            comboBoxAverMethod.Items.AddRange(new object[] { "RGB simple", "RGB euclid", "YUV euclid" });
+            comboBoxAverMethod.Location = new Point(167, 27);
+            comboBoxAverMethod.Name = "comboBoxAverMethod";
+            comboBoxAverMethod.Size = new Size(109, 23);
+            comboBoxAverMethod.TabIndex = 32;
+            comboBoxAverMethod.SelectedIndexChanged += ComboBoxAverMethod_SelectedIndexChanged;
+            // 
+            // label5
+            // 
+            label5.AutoSize = true;
+            label5.Location = new Point(167, 9);
+            label5.Name = "label5";
+            label5.Size = new Size(109, 15);
+            label5.TabIndex = 33;
+            label5.Text = "Averaging method:";
+            // 
+            // progressBarAI
+            // 
+            progressBarAI.Location = new Point(12, 506);
+            progressBarAI.Name = "progressBarAI";
+            progressBarAI.Size = new Size(138, 23);
+            progressBarAI.Step = 1;
+            progressBarAI.TabIndex = 34;
+            // 
+            // labelGenerationDone
+            // 
+            labelGenerationDone.AutoSize = true;
+            labelGenerationDone.Location = new Point(67, 532);
+            labelGenerationDone.Name = "labelGenerationDone";
+            labelGenerationDone.Size = new Size(13, 15);
+            labelGenerationDone.TabIndex = 35;
+            labelGenerationDone.Text = "0";
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1210, 576);
+            ClientSize = new Size(1210, 572);
+            Controls.Add(labelGenerationDone);
+            Controls.Add(progressBarAI);
+            Controls.Add(label5);
+            Controls.Add(comboBoxAverMethod);
             Controls.Add(checkBoxColorReduction);
             Controls.Add(buttonAlpaCentauriInit);
             Controls.Add(listViewPopulation);
@@ -427,7 +472,7 @@
             Controls.Add(label3);
             Controls.Add(numericUpDownGeneration);
             Controls.Add(numericUpDownPopulation);
-            Controls.Add(label2);
+            Controls.Add(labelDiff);
             Controls.Add(buttonAlpaCentauriAI);
             Controls.Add(checkBoxAutoUpdate);
             Controls.Add(checkBoxInterlace);
@@ -439,14 +484,13 @@
             Controls.Add(comboBoxDistance);
             Controls.Add(checkBoxUseDither);
             Controls.Add(comboBoxDither);
-            Controls.Add(checkBoxSimpleAvg);
             Controls.Add(buttonMixIt);
             Controls.Add(pictureBoxPalette);
             Controls.Add(buttonApproximate);
             Controls.Add(pictureBoxSource);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "Form1";
-            Text = "AlterLinePictureApproximator (ALPA) v0.5 by MatoSimi";
+            Text = "AlterLinePictureApproximator (ALPA) v0.6 by MatoSimi";
             Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).EndInit();
@@ -491,7 +535,7 @@
         private CheckBox checkBoxInterlace;
         private CheckBox checkBoxAutoUpdate;
         private Button buttonAlpaCentauriAI;
-        private Label label2;
+        private Label labelDiff;
         private NumericUpDown numericUpDownPopulation;
         private NumericUpDown numericUpDownGeneration;
         private Label label3;
@@ -503,5 +547,10 @@
         private Button buttonAlpaCentauriInit;
         private ColumnHeader columnHeader1;
         private CheckBox checkBoxColorReduction;
+        private ComboBox comboBoxAverMethod;
+        private Label label5;
+        private ToolTip toolTip1;
+        private ProgressBar progressBarAI;
+        private Label labelGenerationDone;
     }
 }
