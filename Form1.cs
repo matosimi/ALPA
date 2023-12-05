@@ -456,27 +456,51 @@ namespace AlterLinePictureAproximator
         private int[] FindCustomClosest2Reduced(int p8index, int distanceMethod, bool inverse)
         {
             int inv = inverse ? 1 : 0;
-            double mindist = double.MaxValue;
-            int index = customP8Match[p8index, inv] - 1;
-            if (index == -1)
+            double[] mindist = new double[2] { double.MaxValue, double.MaxValue };
+            int[] index = new int[2];
+            int indexs = customP8Match[p8index, inv] - 1;
+            if (indexs == -1)
             {
                 for (byte i = 0; i < 16; i++)
                 {
-                    double dist = Distance(palette8[p8index], customColors[i, inverse ? 1 : 0], distanceMethod);
-                    if (dist < mindist)
+                    if (i<2 || i==4 || i==5 || i==15)   //common colors for normal and inverse
                     {
-                        mindist = dist;
-                        index = i;
+                        double dist = Distance(palette8[p8index], customColors[i, 0], distanceMethod);
+                        if (dist < mindist[0])
+                        {
+                            mindist[0] = dist;
+                            index[0] = i;
+                        }
+                        if (dist < mindist[1])
+                        {
+                            mindist[1] = dist;
+                            index[1] = i;
+                        }
+                    }
+                    else
+                    {
+                        for (int j = 0; j < 2; j++) //inverse
+                        {
+                            double dist = Distance(palette8[p8index], customColors[i, j], distanceMethod);
+                            if (dist < mindist[j])
+                            {
+                                mindist[j] = dist;
+                                index[j] = i;
+                            }
+                        }
                     }
                 }
-                customP8Match[p8index, inv] = (byte)(index + 1);
-                customP8MatchDist[p8index, inv] = mindist;
+                customP8Match[p8index, 0] = (byte)(index[0] + 1);
+                customP8MatchDist[p8index, 0] = mindist[0];
+                customP8Match[p8index, 1] = (byte)(index[1] + 1);
+                customP8MatchDist[p8index, 1] = mindist[1];
+                indexs = index[inv];
             }
             else
             {
-                mindist = customP8MatchDist[p8index, inv];
+                mindist[0] = customP8MatchDist[p8index, inv];
             }
-            return new int[2] { index, (int)mindist };
+            return new int[2] { indexs, (int)mindist[0] };
         }
 
         private int[] FindCustomClosest2(Color color, int distanceMethod, bool inverse)
