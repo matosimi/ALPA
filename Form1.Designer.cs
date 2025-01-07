@@ -88,17 +88,19 @@
             // pictureBoxSource
             // 
             pictureBoxSource.Image = (Image)resources.GetObject("pictureBoxSource.Image");
-            pictureBoxSource.Location = new Point(12, 12);
+            pictureBoxSource.Location = new Point(18, 20);
+            pictureBoxSource.Margin = new Padding(4, 5, 4, 5);
             pictureBoxSource.Name = "pictureBoxSource";
-            pictureBoxSource.Size = new Size(128, 192);
+            pictureBoxSource.Size = new Size(182, 320);
             pictureBoxSource.TabIndex = 0;
             pictureBoxSource.TabStop = false;
             // 
             // buttonApproximate
             // 
-            buttonApproximate.Location = new Point(311, 12);
+            buttonApproximate.Location = new Point(444, 20);
+            buttonApproximate.Margin = new Padding(4, 5, 4, 5);
             buttonApproximate.Name = "buttonApproximate";
-            buttonApproximate.Size = new Size(93, 73);
+            buttonApproximate.Size = new Size(132, 121);
             buttonApproximate.TabIndex = 1;
             buttonApproximate.Text = "Approximate";
             buttonApproximate.UseVisualStyleBackColor = true;
@@ -106,17 +108,19 @@
             // 
             // pictureBoxAprox
             // 
-            pictureBoxAprox.Location = new Point(3, 145);
+            pictureBoxAprox.Location = new Point(4, 241);
+            pictureBoxAprox.Margin = new Padding(4, 5, 4, 5);
             pictureBoxAprox.Name = "pictureBoxAprox";
-            pictureBoxAprox.Size = new Size(256, 136);
+            pictureBoxAprox.Size = new Size(366, 226);
             pictureBoxAprox.TabIndex = 2;
             pictureBoxAprox.TabStop = false;
             // 
             // pictureBoxAtariAprox
             // 
-            pictureBoxAtariAprox.Location = new Point(3, 3);
+            pictureBoxAtariAprox.Location = new Point(4, 5);
+            pictureBoxAtariAprox.Margin = new Padding(4, 5, 4, 5);
             pictureBoxAtariAprox.Name = "pictureBoxAtariAprox";
-            pictureBoxAtariAprox.Size = new Size(256, 136);
+            pictureBoxAtariAprox.Size = new Size(366, 226);
             pictureBoxAtariAprox.TabIndex = 3;
             pictureBoxAtariAprox.TabStop = false;
             // 
@@ -124,43 +128,48 @@
             // 
             pictureBoxPalette.ErrorImage = null;
             pictureBoxPalette.Image = AlterLinePictureApproximator.Properties.Resources.pal;
-            pictureBoxPalette.Location = new Point(12, 240);
+            pictureBoxPalette.Location = new Point(18, 400);
+            pictureBoxPalette.Margin = new Padding(4, 5, 4, 5);
             pictureBoxPalette.Name = "pictureBoxPalette";
-            pictureBoxPalette.Size = new Size(128, 97);
+            pictureBoxPalette.Size = new Size(228, 214);
             pictureBoxPalette.TabIndex = 4;
             pictureBoxPalette.TabStop = false;
             pictureBoxPalette.MouseDown += pictureBoxPalette_MouseDown;
             // 
             // pictureBoxAproxInverse
             // 
-            pictureBoxAproxInverse.Location = new Point(265, 145);
+            pictureBoxAproxInverse.Location = new Point(378, 241);
+            pictureBoxAproxInverse.Margin = new Padding(4, 5, 4, 5);
             pictureBoxAproxInverse.Name = "pictureBoxAproxInverse";
-            pictureBoxAproxInverse.Size = new Size(256, 136);
+            pictureBoxAproxInverse.Size = new Size(366, 226);
             pictureBoxAproxInverse.TabIndex = 6;
             pictureBoxAproxInverse.TabStop = false;
             // 
             // pictureBoxAtariAproxInverse
             // 
-            pictureBoxAtariAproxInverse.Location = new Point(265, 3);
+            pictureBoxAtariAproxInverse.Location = new Point(378, 5);
+            pictureBoxAtariAproxInverse.Margin = new Padding(4, 5, 4, 5);
             pictureBoxAtariAproxInverse.Name = "pictureBoxAtariAproxInverse";
-            pictureBoxAtariAproxInverse.Size = new Size(256, 136);
+            pictureBoxAtariAproxInverse.Size = new Size(366, 226);
             pictureBoxAtariAproxInverse.TabIndex = 7;
             pictureBoxAtariAproxInverse.TabStop = false;
             // 
             // pictureBoxAtariMix
             // 
-            pictureBoxAtariMix.Location = new Point(527, 3);
+            pictureBoxAtariMix.Location = new Point(752, 5);
+            pictureBoxAtariMix.Margin = new Padding(4, 5, 4, 5);
             pictureBoxAtariMix.Name = "pictureBoxAtariMix";
-            pictureBoxAtariMix.Size = new Size(256, 136);
+            pictureBoxAtariMix.Size = new Size(366, 226);
             pictureBoxAtariMix.TabIndex = 8;
             pictureBoxAtariMix.TabStop = false;
             toolTip1.SetToolTip(pictureBoxAtariMix, "Result (non interlace view)");
             // 
             // buttonMixIt
             // 
-            buttonMixIt.Location = new Point(311, 145);
+            buttonMixIt.Location = new Point(444, 241);
+            buttonMixIt.Margin = new Padding(4, 5, 4, 5);
             buttonMixIt.Name = "buttonMixIt";
-            buttonMixIt.Size = new Size(93, 73);
+            buttonMixIt.Size = new Size(132, 121);
             buttonMixIt.TabIndex = 9;
             buttonMixIt.Text = "Mix";
             buttonMixIt.UseVisualStyleBackColor = true;
@@ -168,9 +177,10 @@
             // 
             // pictureBoxCharMask
             // 
-            pictureBoxCharMask.Location = new Point(3, 287);
+            pictureBoxCharMask.Location = new Point(4, 477);
+            pictureBoxCharMask.Margin = new Padding(4, 5, 4, 5);
             pictureBoxCharMask.Name = "pictureBoxCharMask";
-            pictureBoxCharMask.Size = new Size(256, 136);
+            pictureBoxCharMask.Size = new Size(366, 226);
             pictureBoxCharMask.TabIndex = 10;
             pictureBoxCharMask.TabStop = false;
             toolTip1.SetToolTip(pictureBoxCharMask, "Char inverse mask");
@@ -181,18 +191,20 @@
             comboBoxDither.Enabled = false;
             comboBoxDither.FormattingEnabled = true;
             comboBoxDither.Items.AddRange(new object[] { "chess", "sierra", "F-S" });
-            comboBoxDither.Location = new Point(167, 87);
+            comboBoxDither.Location = new Point(239, 145);
+            comboBoxDither.Margin = new Padding(4, 5, 4, 5);
             comboBoxDither.Name = "comboBoxDither";
-            comboBoxDither.Size = new Size(109, 23);
+            comboBoxDither.Size = new Size(154, 33);
             comboBoxDither.TabIndex = 13;
             // 
             // checkBoxUseDither
             // 
             checkBoxUseDither.AutoSize = true;
             checkBoxUseDither.Enabled = false;
-            checkBoxUseDither.Location = new Point(167, 66);
+            checkBoxUseDither.Location = new Point(239, 110);
+            checkBoxUseDither.Margin = new Padding(4, 5, 4, 5);
             checkBoxUseDither.Name = "checkBoxUseDither";
-            checkBoxUseDither.Size = new Size(96, 19);
+            checkBoxUseDither.Size = new Size(143, 29);
             checkBoxUseDither.TabIndex = 14;
             checkBoxUseDither.Text = "Use dithering";
             toolTip1.SetToolTip(checkBoxUseDither, "cannot be used together with color reduction, its slower");
@@ -204,26 +216,29 @@
             comboBoxDistance.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxDistance.FormattingEnabled = true;
             comboBoxDistance.Items.AddRange(new object[] { "RGB simple", "RGB euclid", "RGBYUV", "YUV euclid", "Weighted RGB" });
-            comboBoxDistance.Location = new Point(167, 145);
+            comboBoxDistance.Location = new Point(239, 241);
+            comboBoxDistance.Margin = new Padding(4, 5, 4, 5);
             comboBoxDistance.Name = "comboBoxDistance";
-            comboBoxDistance.Size = new Size(109, 23);
+            comboBoxDistance.Size = new Size(154, 33);
             comboBoxDistance.TabIndex = 15;
             comboBoxDistance.SelectedIndexChanged += ComboBoxDistance_SelectedIndexChanged;
             // 
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(167, 127);
+            label1.Location = new Point(239, 211);
+            label1.Margin = new Padding(4, 0, 4, 0);
             label1.Name = "label1";
-            label1.Size = new Size(100, 15);
+            label1.Size = new Size(151, 25);
             label1.TabIndex = 16;
             label1.Text = "Distance method:";
             // 
             // buttonOpen
             // 
-            buttonOpen.Location = new Point(12, 210);
+            buttonOpen.Location = new Point(18, 350);
+            buttonOpen.Margin = new Padding(4, 5, 4, 5);
             buttonOpen.Name = "buttonOpen";
-            buttonOpen.Size = new Size(75, 23);
+            buttonOpen.Size = new Size(108, 39);
             buttonOpen.TabIndex = 17;
             buttonOpen.Text = "Open";
             buttonOpen.UseVisualStyleBackColor = true;
@@ -245,16 +260,18 @@
             flowLayoutPanel1.Controls.Add(pictureBoxSrcReduced);
             flowLayoutPanel1.Controls.Add(pictureBoxSrcData);
             flowLayoutPanel1.Dock = DockStyle.Right;
-            flowLayoutPanel1.Location = new Point(410, 0);
+            flowLayoutPanel1.Location = new Point(587, 0);
+            flowLayoutPanel1.Margin = new Padding(4, 5, 4, 5);
             flowLayoutPanel1.Name = "flowLayoutPanel1";
-            flowLayoutPanel1.Size = new Size(800, 572);
+            flowLayoutPanel1.Size = new Size(1142, 954);
             flowLayoutPanel1.TabIndex = 18;
             // 
             // pictureBoxAproxMix
             // 
-            pictureBoxAproxMix.Location = new Point(527, 145);
+            pictureBoxAproxMix.Location = new Point(752, 241);
+            pictureBoxAproxMix.Margin = new Padding(4, 5, 4, 5);
             pictureBoxAproxMix.Name = "pictureBoxAproxMix";
-            pictureBoxAproxMix.Size = new Size(256, 136);
+            pictureBoxAproxMix.Size = new Size(366, 226);
             pictureBoxAproxMix.TabIndex = 12;
             pictureBoxAproxMix.TabStop = false;
             toolTip1.SetToolTip(pictureBoxAproxMix, "Result (interlaced view)");
@@ -262,27 +279,30 @@
             // pictureBoxSrcReduced
             // 
             pictureBoxSrcReduced.BackColor = SystemColors.ActiveCaptionText;
-            pictureBoxSrcReduced.Location = new Point(265, 287);
+            pictureBoxSrcReduced.Location = new Point(378, 477);
+            pictureBoxSrcReduced.Margin = new Padding(4, 5, 4, 5);
             pictureBoxSrcReduced.Name = "pictureBoxSrcReduced";
-            pictureBoxSrcReduced.Size = new Size(256, 136);
+            pictureBoxSrcReduced.Size = new Size(366, 226);
             pictureBoxSrcReduced.TabIndex = 13;
             pictureBoxSrcReduced.TabStop = false;
             toolTip1.SetToolTip(pictureBoxSrcReduced, "Source image reduced to 256 colors");
             // 
             // pictureBoxSrcData
             // 
-            pictureBoxSrcData.Location = new Point(527, 287);
+            pictureBoxSrcData.Location = new Point(752, 477);
+            pictureBoxSrcData.Margin = new Padding(4, 5, 4, 5);
             pictureBoxSrcData.Name = "pictureBoxSrcData";
-            pictureBoxSrcData.Size = new Size(256, 136);
+            pictureBoxSrcData.Size = new Size(366, 226);
             pictureBoxSrcData.TabIndex = 11;
             pictureBoxSrcData.TabStop = false;
             toolTip1.SetToolTip(pictureBoxSrcData, "Source image");
             // 
             // buttonXex
             // 
-            buttonXex.Location = new Point(311, 281);
+            buttonXex.Location = new Point(444, 469);
+            buttonXex.Margin = new Padding(4, 5, 4, 5);
             buttonXex.Name = "buttonXex";
-            buttonXex.Size = new Size(93, 70);
+            buttonXex.Size = new Size(132, 116);
             buttonXex.TabIndex = 19;
             buttonXex.Text = "-> xex";
             buttonXex.UseVisualStyleBackColor = true;
@@ -293,9 +313,10 @@
             checkBoxAutoscale.AutoSize = true;
             checkBoxAutoscale.Checked = true;
             checkBoxAutoscale.CheckState = CheckState.Checked;
-            checkBoxAutoscale.Location = new Point(93, 213);
+            checkBoxAutoscale.Location = new Point(132, 355);
+            checkBoxAutoscale.Margin = new Padding(4, 5, 4, 5);
             checkBoxAutoscale.Name = "checkBoxAutoscale";
-            checkBoxAutoscale.Size = new Size(147, 19);
+            checkBoxAutoscale.Size = new Size(216, 29);
             checkBoxAutoscale.TabIndex = 20;
             checkBoxAutoscale.Text = "Autoscale (shrink only)";
             checkBoxAutoscale.UseVisualStyleBackColor = true;
@@ -305,9 +326,10 @@
             checkBoxInterlace.AutoSize = true;
             checkBoxInterlace.Checked = true;
             checkBoxInterlace.CheckState = CheckState.Checked;
-            checkBoxInterlace.Location = new Point(311, 351);
+            checkBoxInterlace.Location = new Point(444, 585);
+            checkBoxInterlace.Margin = new Padding(4, 5, 4, 5);
             checkBoxInterlace.Name = "checkBoxInterlace";
-            checkBoxInterlace.Size = new Size(71, 19);
+            checkBoxInterlace.Size = new Size(104, 29);
             checkBoxInterlace.TabIndex = 21;
             checkBoxInterlace.Text = "Interlace";
             checkBoxInterlace.UseVisualStyleBackColor = true;
@@ -315,9 +337,12 @@
             // checkBoxAutoUpdate
             // 
             checkBoxAutoUpdate.AutoSize = true;
-            checkBoxAutoUpdate.Location = new Point(146, 318);
+            checkBoxAutoUpdate.Checked = true;
+            checkBoxAutoUpdate.CheckState = CheckState.Checked;
+            checkBoxAutoUpdate.Location = new Point(268, 530);
+            checkBoxAutoUpdate.Margin = new Padding(4, 5, 4, 5);
             checkBoxAutoUpdate.Name = "checkBoxAutoUpdate";
-            checkBoxAutoUpdate.Size = new Size(89, 19);
+            checkBoxAutoUpdate.Size = new Size(133, 29);
             checkBoxAutoUpdate.TabIndex = 22;
             checkBoxAutoUpdate.Text = "Autoupdate";
             checkBoxAutoUpdate.UseVisualStyleBackColor = true;
@@ -325,9 +350,10 @@
             // buttonAlpaCentauriAI
             // 
             buttonAlpaCentauriAI.Enabled = false;
-            buttonAlpaCentauriAI.Location = new Point(12, 384);
+            buttonAlpaCentauriAI.Location = new Point(18, 679);
+            buttonAlpaCentauriAI.Margin = new Padding(4, 5, 4, 5);
             buttonAlpaCentauriAI.Name = "buttonAlpaCentauriAI";
-            buttonAlpaCentauriAI.Size = new Size(128, 29);
+            buttonAlpaCentauriAI.Size = new Size(182, 49);
             buttonAlpaCentauriAI.TabIndex = 23;
             buttonAlpaCentauriAI.Text = "Alpa Centauri AI";
             buttonAlpaCentauriAI.UseVisualStyleBackColor = true;
@@ -336,56 +362,62 @@
             // labelDiff
             // 
             labelDiff.AutoSize = true;
-            labelDiff.Location = new Point(145, 384);
+            labelDiff.Location = new Point(209, 636);
+            labelDiff.Margin = new Padding(4, 0, 4, 0);
             labelDiff.Name = "labelDiff";
-            labelDiff.Size = new Size(26, 15);
+            labelDiff.Size = new Size(41, 25);
             labelDiff.TabIndex = 24;
             labelDiff.Text = "Diff";
             // 
             // numericUpDownPopulation
             // 
-            numericUpDownPopulation.Location = new Point(93, 427);
-            numericUpDownPopulation.Maximum = new decimal(new int[] { 200, 0, 0, 0 });
+            numericUpDownPopulation.Location = new Point(132, 750);
+            numericUpDownPopulation.Margin = new Padding(4, 5, 4, 5);
+            numericUpDownPopulation.Maximum = new decimal(new int[] { 400, 0, 0, 0 });
             numericUpDownPopulation.Minimum = new decimal(new int[] { 4, 0, 0, 0 });
             numericUpDownPopulation.Name = "numericUpDownPopulation";
-            numericUpDownPopulation.Size = new Size(57, 23);
+            numericUpDownPopulation.Size = new Size(81, 31);
             numericUpDownPopulation.TabIndex = 25;
             numericUpDownPopulation.Value = new decimal(new int[] { 40, 0, 0, 0 });
             // 
             // numericUpDownGeneration
             // 
-            numericUpDownGeneration.Location = new Point(93, 456);
+            numericUpDownGeneration.Location = new Point(132, 799);
+            numericUpDownGeneration.Margin = new Padding(4, 5, 4, 5);
             numericUpDownGeneration.Maximum = new decimal(new int[] { 200, 0, 0, 0 });
             numericUpDownGeneration.Name = "numericUpDownGeneration";
-            numericUpDownGeneration.Size = new Size(57, 23);
+            numericUpDownGeneration.Size = new Size(81, 31);
             numericUpDownGeneration.TabIndex = 26;
             numericUpDownGeneration.Value = new decimal(new int[] { 40, 0, 0, 0 });
             // 
             // label3
             // 
             label3.AutoSize = true;
-            label3.Location = new Point(12, 435);
+            label3.Location = new Point(18, 764);
+            label3.Margin = new Padding(4, 0, 4, 0);
             label3.Name = "label3";
-            label3.Size = new Size(65, 15);
+            label3.Size = new Size(97, 25);
             label3.TabIndex = 27;
             label3.Text = "Population";
             // 
             // label4
             // 
             label4.AutoSize = true;
-            label4.Location = new Point(12, 458);
+            label4.Location = new Point(18, 801);
+            label4.Margin = new Padding(4, 0, 4, 0);
             label4.Name = "label4";
-            label4.Size = new Size(70, 15);
+            label4.Size = new Size(106, 25);
             label4.TabIndex = 28;
             label4.Text = "Generations";
             // 
             // listViewPopulation
             // 
             listViewPopulation.Columns.AddRange(new ColumnHeader[] { columnHeader1 });
-            listViewPopulation.Location = new Point(167, 400);
+            listViewPopulation.Location = new Point(239, 666);
+            listViewPopulation.Margin = new Padding(4, 5, 4, 5);
             listViewPopulation.MultiSelect = false;
             listViewPopulation.Name = "listViewPopulation";
-            listViewPopulation.Size = new Size(237, 164);
+            listViewPopulation.Size = new Size(336, 270);
             listViewPopulation.TabIndex = 29;
             listViewPopulation.UseCompatibleStateImageBehavior = false;
             listViewPopulation.View = View.Details;
@@ -398,9 +430,10 @@
             // 
             // buttonAlpaCentauriInit
             // 
-            buttonAlpaCentauriInit.Location = new Point(12, 351);
+            buttonAlpaCentauriInit.Location = new Point(18, 624);
+            buttonAlpaCentauriInit.Margin = new Padding(4, 5, 4, 5);
             buttonAlpaCentauriInit.Name = "buttonAlpaCentauriInit";
-            buttonAlpaCentauriInit.Size = new Size(128, 29);
+            buttonAlpaCentauriInit.Size = new Size(182, 49);
             buttonAlpaCentauriInit.TabIndex = 30;
             buttonAlpaCentauriInit.Text = "Alpa Centauri Init";
             buttonAlpaCentauriInit.UseVisualStyleBackColor = true;
@@ -411,9 +444,10 @@
             checkBoxColorReduction.AutoSize = true;
             checkBoxColorReduction.Checked = true;
             checkBoxColorReduction.CheckState = CheckState.Checked;
-            checkBoxColorReduction.Location = new Point(167, 185);
+            checkBoxColorReduction.Location = new Point(239, 309);
+            checkBoxColorReduction.Margin = new Padding(4, 5, 4, 5);
             checkBoxColorReduction.Name = "checkBoxColorReduction";
-            checkBoxColorReduction.Size = new Size(109, 19);
+            checkBoxColorReduction.Size = new Size(161, 29);
             checkBoxColorReduction.TabIndex = 31;
             checkBoxColorReduction.Text = "Color reduction";
             checkBoxColorReduction.UseVisualStyleBackColor = true;
@@ -424,43 +458,47 @@
             comboBoxAverMethod.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxAverMethod.FormattingEnabled = true;
             comboBoxAverMethod.Items.AddRange(new object[] { "RGB simple", "RGB euclid", "YUV euclid" });
-            comboBoxAverMethod.Location = new Point(167, 27);
+            comboBoxAverMethod.Location = new Point(239, 45);
+            comboBoxAverMethod.Margin = new Padding(4, 5, 4, 5);
             comboBoxAverMethod.Name = "comboBoxAverMethod";
-            comboBoxAverMethod.Size = new Size(109, 23);
+            comboBoxAverMethod.Size = new Size(154, 33);
             comboBoxAverMethod.TabIndex = 32;
             comboBoxAverMethod.SelectedIndexChanged += ComboBoxAverMethod_SelectedIndexChanged;
             // 
             // label5
             // 
             label5.AutoSize = true;
-            label5.Location = new Point(167, 9);
+            label5.Location = new Point(239, 15);
+            label5.Margin = new Padding(4, 0, 4, 0);
             label5.Name = "label5";
-            label5.Size = new Size(109, 15);
+            label5.Size = new Size(165, 25);
             label5.TabIndex = 33;
             label5.Text = "Averaging method:";
             // 
             // progressBarAI
             // 
-            progressBarAI.Location = new Point(12, 506);
+            progressBarAI.Location = new Point(18, 881);
+            progressBarAI.Margin = new Padding(4, 5, 4, 5);
             progressBarAI.Name = "progressBarAI";
-            progressBarAI.Size = new Size(138, 23);
+            progressBarAI.Size = new Size(198, 39);
             progressBarAI.Step = 1;
             progressBarAI.TabIndex = 34;
             // 
             // labelGenerationDone
             // 
             labelGenerationDone.AutoSize = true;
-            labelGenerationDone.Location = new Point(67, 532);
+            labelGenerationDone.Location = new Point(96, 925);
+            labelGenerationDone.Margin = new Padding(4, 0, 4, 0);
             labelGenerationDone.Name = "labelGenerationDone";
-            labelGenerationDone.Size = new Size(13, 15);
+            labelGenerationDone.Size = new Size(22, 25);
             labelGenerationDone.TabIndex = 35;
             labelGenerationDone.Text = "0";
             // 
             // Form1
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1210, 572);
+            AutoScaleDimensions = new SizeF(144F, 144F);
+            AutoScaleMode = AutoScaleMode.Dpi;
+            ClientSize = new Size(1729, 954);
             Controls.Add(labelGenerationDone);
             Controls.Add(progressBarAI);
             Controls.Add(label5);
@@ -489,6 +527,7 @@
             Controls.Add(buttonApproximate);
             Controls.Add(pictureBoxSource);
             Icon = (Icon)resources.GetObject("$this.Icon");
+            Margin = new Padding(4, 5, 4, 5);
             Name = "Form1";
             Text = "AlterLinePictureApproximator (ALPA) v0.6 by MatoSimi";
             Load += Form1_Load;
