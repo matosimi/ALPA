@@ -50,6 +50,8 @@
             pictureBoxAproxMix = new PictureBox();
             pictureBoxSrcReduced = new PictureBox();
             pictureBoxSrcData = new PictureBox();
+            pictureBoxResult = new PictureBox();
+            pictureBoxMasks = new PictureBox();
             buttonXex = new Button();
             checkBoxAutoscale = new CheckBox();
             checkBoxInterlace = new CheckBox();
@@ -69,6 +71,7 @@
             toolTip1 = new ToolTip(components);
             progressBarAI = new ProgressBar();
             labelGenerationDone = new Label();
+            button1 = new Button();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAprox).BeginInit();
@@ -81,6 +84,8 @@
             ((System.ComponentModel.ISupportInitialize)pictureBoxAproxMix).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSrcReduced).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSrcData).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxResult).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxMasks).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownPopulation).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownGeneration).BeginInit();
             SuspendLayout();
@@ -259,6 +264,8 @@
             flowLayoutPanel1.Controls.Add(pictureBoxCharMask);
             flowLayoutPanel1.Controls.Add(pictureBoxSrcReduced);
             flowLayoutPanel1.Controls.Add(pictureBoxSrcData);
+            flowLayoutPanel1.Controls.Add(pictureBoxResult);
+            flowLayoutPanel1.Controls.Add(pictureBoxMasks);
             flowLayoutPanel1.Dock = DockStyle.Right;
             flowLayoutPanel1.Location = new Point(587, 0);
             flowLayoutPanel1.Margin = new Padding(4, 5, 4, 5);
@@ -296,6 +303,28 @@
             pictureBoxSrcData.TabIndex = 11;
             pictureBoxSrcData.TabStop = false;
             toolTip1.SetToolTip(pictureBoxSrcData, "Source image");
+            // 
+            // pictureBoxResult
+            // 
+            pictureBoxResult.BackColor = Color.Red;
+            pictureBoxResult.Location = new Point(4, 713);
+            pictureBoxResult.Margin = new Padding(4, 5, 4, 5);
+            pictureBoxResult.Name = "pictureBoxResult";
+            pictureBoxResult.Size = new Size(366, 226);
+            pictureBoxResult.TabIndex = 14;
+            pictureBoxResult.TabStop = false;
+            toolTip1.SetToolTip(pictureBoxResult, "new Result image");
+            // 
+            // pictureBoxMasks
+            // 
+            pictureBoxMasks.BackColor = Color.Lime;
+            pictureBoxMasks.Location = new Point(378, 713);
+            pictureBoxMasks.Margin = new Padding(4, 5, 4, 5);
+            pictureBoxMasks.Name = "pictureBoxMasks";
+            pictureBoxMasks.Size = new Size(366, 226);
+            pictureBoxMasks.TabIndex = 15;
+            pictureBoxMasks.TabStop = false;
+            toolTip1.SetToolTip(pictureBoxMasks, "new Result image");
             // 
             // buttonXex
             // 
@@ -494,11 +523,23 @@
             labelGenerationDone.TabIndex = 35;
             labelGenerationDone.Text = "0";
             // 
+            // button1
+            // 
+            button1.Location = new Point(444, 372);
+            button1.Margin = new Padding(4, 5, 4, 5);
+            button1.Name = "button1";
+            button1.Size = new Size(131, 70);
+            button1.TabIndex = 36;
+            button1.Text = "NEW";
+            button1.UseVisualStyleBackColor = true;
+            button1.Click += button1_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(144F, 144F);
             AutoScaleMode = AutoScaleMode.Dpi;
             ClientSize = new Size(1729, 954);
+            Controls.Add(button1);
             Controls.Add(labelGenerationDone);
             Controls.Add(progressBarAI);
             Controls.Add(label5);
@@ -529,7 +570,7 @@
             Icon = (Icon)resources.GetObject("$this.Icon");
             Margin = new Padding(4, 5, 4, 5);
             Name = "Form1";
-            Text = "AlterLinePictureApproximator (ALPA) v0.6 by MatoSimi";
+            Text = "AlterLinePictureApproximator (ALPA) v0.7 by MatoSimi";
             Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).EndInit();
@@ -543,6 +584,8 @@
             ((System.ComponentModel.ISupportInitialize)pictureBoxAproxMix).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSrcReduced).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSrcData).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxResult).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxMasks).EndInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownPopulation).EndInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownGeneration).EndInit();
             ResumeLayout(false);
@@ -591,5 +634,8 @@
         private ToolTip toolTip1;
         private ProgressBar progressBarAI;
         private Label labelGenerationDone;
+        private PictureBox pictureBoxResult;
+        private Button button1;
+        private PictureBox pictureBoxMasks;
     }
 }
