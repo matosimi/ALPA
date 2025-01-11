@@ -3,6 +3,7 @@ namespace AlterLinePictureAproximator
     using AtariMapMaker;
     using System;
     using System.CodeDom;
+    using System.Diagnostics;
     using System.Drawing;
     using System.Globalization;
     using System.Net.Security;
@@ -62,18 +63,19 @@ namespace AlterLinePictureAproximator
         public int[,,] bitmap;
         public byte[,,] srcChannelMatrix;   //matrix containing RGB channels of source image
         public int[,] bit8map;
+        public int[,,] colorIgnoreMatrix = new int[COLORS * COLORS, 2, 2];
         public Color[] palette8 = new Color[256];
         public int[,,] customP8Match = new int[256, 2, 2];   //reset every custom palette change
-        public double[,,] customP8MatchDist = new double[256, 2, 2];    ////reset every custom palette change
+        public long[,,] customP8MatchDist = new long[256, 2, 2];    ////reset every custom palette change
         public List<AlpaItem> alpaItems = new List<AlpaItem>();
         public Random rand = new Random();
         public int totalPixels;
         public byte[,,,] customP24Match = new byte[256, 256, 256, 2];
-        public double[,,,] customP24MatchDist = new double[256, 256, 256, 2];
+        public long[,,,] customP24MatchDist = new long[256, 256, 256, 2];
         public class AlpaItem
         {
-            public double Diff { get; set; }
-            public double Ppdiff { get; set; }
+            public long Diff { get; set; }
+            public int Ppdiff { get; set; }
             public byte[] Line0 { get; set; }
             public byte[] Line1 { get; set; }
         }
@@ -138,6 +140,12 @@ namespace AlterLinePictureAproximator
             }
             return Color.AliceBlue;
         }
+
+        //<summary> Converts atari indexed color to 24bit Color object
+        private Color AtariColorToColor(int colorIndex)
+        {
+            return Color.FromArgb((int)atariPalRgb[colorIndex * 3], (int)atariPalRgb[colorIndex * 3 + 1], (int)atariPalRgb[colorIndex * 3 + 2]);
+        }
         private Color AverageColor(int c1, int c2, int method)
         {
 
@@ -167,6 +175,9 @@ namespace AlterLinePictureAproximator
 
         private void CreatePal(int method, bool noDraw = false)
         {
+            //int[,] hepaMatrix = new int[COLORS * COLORS, 2];   //color-ignore matrix based on the HEPA filtering
+            int hepaLumaFilter = checkBoxHepa.Checked ? (int)numericUpDownHepaLuma.Value : 14;
+            int hepaChromaFilter = checkBoxHepa.Checked ? (int)numericUpDownHepaChroma.Value : 15;
             customColors = new Color[COLORS * COLORS, 2];
             for (int z = 0; z < 2; z++)
             {
@@ -174,12 +185,20 @@ namespace AlterLinePictureAproximator
                 List<byte> l1 = line1.ToList();
                 l0.RemoveAt(3 - z);
                 l1.RemoveAt(3 - z);
+                int index = 0;
                 for (int a = 0; a < COLORS; a++)
                 {
                     for (int b = 0; b < COLORS; b++)
-                        customColors[a * COLORS + b, z] = AverageColor(l0[a], l1[b], method);
-                    cline0[a, z] = AverageColor(l0[a], l0[a], method);
-                    cline1[a, z] = AverageColor(l1[a], l1[a], method);
+                    {
+                        customColors[index, z] = AverageColor(l0[a], l1[b], method);
+                        //hepaMatrix[index, z] = Math.Abs((l0[a] % 16) - (l1[b] % 16)) <= hepaLumaFilter ? 1 : 0;
+                        int hepaItem = Math.Abs((l0[a] % 16) - (l1[b] % 16)) <= hepaLumaFilter ? 1 : 0;
+                        colorIgnoreMatrix[index, z, 0] = hepaItem & IGNORE_PMG_MATRIX5[index];
+                        colorIgnoreMatrix[index, z, 1] = hepaItem & IGNORE_BG_MATRIX5[index];
+                        index++;
+                    }
+                    cline0[a, z] = AtariColorToColor(l0[a]);
+                    cline1[a, z] = AtariColorToColor(l1[a]);
                 }
             }
 
@@ -247,8 +266,18 @@ namespace AlterLinePictureAproximator
             totalPixels = srcChannelMatrix.Length / 3;
         }
 
+        //initialize customP8Match with -1 value in each cell
+        private void InitializeArrayToMinusOne(Array array)
+        {
+            
+            var data = MemoryMarshal.CreateSpan(
+                ref Unsafe.As<byte, int>(ref MemoryMarshal.GetArrayDataReference(array)),
+                array.Length);
+            data.Fill(-1);
+        }
+
         //new calcdiff for 8bit palette-reduced picture
-        private (double totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) CalcDiff2P8(int distanceMethod)
+        private (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) CalcDiff2P8(int distanceMethod)
         {
             int width = srcChannelMatrix.GetLength(0);
             int height = srcChannelMatrix.GetLength(1);
@@ -257,16 +286,11 @@ namespace AlterLinePictureAproximator
             int[,] charMask = new int[32, charHeight];
             int[,] pmgMask = new int[32, height];
             int[,] bitmapDataIndexed = new int[width, height];
-            double[] charDiff = new double[2];
-            double totalDiff = 0;
-            double[,,] pmgDiff = new double[4, 2, 2];
+            long[] charDiff = new long[2];
+            long totalDiff = 0;
+            long[,,] pmgDiff = new long[4, 2, 2];
 
-            //initialize customP8Match with -1 value in each cell
-            var data = MemoryMarshal.CreateSpan(
-                ref Unsafe.As<byte, int>(ref MemoryMarshal.GetArrayDataReference(customP8Match)),
-                customP8Match.Length);
-            data.Fill(-1);
-
+            InitializeArrayToMinusOne(customP8Match);
             Array.Clear(customP8MatchDist);
             int[,,,] bitmapCharDataIndexed = new int[4, 4, 2, 2];
             int[,] pmgCharData = new int[4, 2];
@@ -285,7 +309,7 @@ namespace AlterLinePictureAproximator
                                 for (int cx = 0; cx < 4; cx++)
                                 {
                                     var (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceMethod, z, t);
-                                    pmgDiff[cy, t, z] += Math.Pow(distance, 2);
+                                    pmgDiff[cy, t, z] += (long)Math.Pow(distance, 2);
                                     bitmapCharDataIndexed[cx, cy, z, t] = index;
                                 }
                             }
@@ -305,14 +329,14 @@ namespace AlterLinePictureAproximator
                 }
             return (totalDiff, bitmapDataIndexed, charMask: charMask, pmgMask: pmgMask);
         }
-        private double CalcDiff(int averMethod, int distanceMethod, bool dither, int ditherMethod = 0)
+        private long CalcDiff(int averMethod, int distanceMethod, bool dither, int ditherMethod = 0)
         {
             int width = srcChannelMatrix.GetLength(0);
             int height = srcChannelMatrix.GetLength(1);
             int[,,] delta_matrix = new int[width + 1, height + 1, 3];
             diff_matrix = new int[width + 1, height + 1, 2, 2];
             //bitmap = new int[width, height, 2];
-            Array.Clear(customP8Match);
+            InitializeArrayToMinusOne(customP8Match);
             Array.Clear(customP8MatchDist);
             Array.Clear(customP24Match);
             Array.Clear(customP24MatchDist);
@@ -392,15 +416,15 @@ namespace AlterLinePictureAproximator
             }
             int charHeight = height / 4;
             mask = new int[32, charHeight];
-            double[,,] chardiff = new double[32, charHeight, 2];
-            double totalDiff = 0;
+            long[,,] chardiff = new long[32, charHeight, 2];
+            long totalDiff = 0;
             for (int y = 0; y < charHeight; y++)
                 for (int x = 0; x < 32; x++)
                 {
                     for (int z = 0; z < 2; z++)
                         for (int cy = 0; cy < 4; cy++)
                             for (int cx = 0; cx < 4; cx++)
-                                chardiff[x, y, z] += Math.Pow(diff_matrix[x * 4 + cx, y * 4 + cy, z, 0], 2);
+                                chardiff[x, y, z] += (long)(Math.Pow(diff_matrix[x * 4 + cx, y * 4 + cy, z, 0], 2));
 
                     mask[x, y] = (chardiff[x, y, 0] > chardiff[x, y, 1]) ? 1 : 0; //1=black
                     totalDiff += chardiff[x, y, mask[x, y]];
@@ -410,8 +434,8 @@ namespace AlterLinePictureAproximator
 
         private void Redraw(int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask)
         {
-            int width = bitmapDataIndexed.GetLength(0);
-            int height = bitmapDataIndexed.GetLength(1);
+            int width = charMask.GetLength(0)*4;
+            int height = charMask.GetLength(1)*4;
             Bitmap t = new Bitmap(width * 2, height * 2);
 
             for (int y = 0; y < height; y++)
@@ -450,7 +474,7 @@ namespace AlterLinePictureAproximator
             int[,,] delta_matrix = new int[b.Width + 1, b.Height + 1, 3];
             diff_matrix = new int[b.Width + 1, b.Height + 1, 2, 2];
             bitmap = new int[b.Width, b.Height, 2];
-            Array.Clear(customP8Match);
+            InitializeArrayToMinusOne(customP8Match);
             Array.Clear(customP8MatchDist);
             for (int z = 0; z < 2; z++)
             {
@@ -465,7 +489,7 @@ namespace AlterLinePictureAproximator
                                                srcChannelMatrix[x,y,2] + delta_matrix[x,y,2]};
                         int[] rtn = new int[2];
                         int index;
-                        double diff;
+                        long diff;
                         if (!checkBoxColorReduction.Checked)
                         {
                             Color srcPlusDelta = Color.FromArgb(Clamp256(channel[0]), Clamp256(channel[1]), Clamp256(channel[2]));
@@ -525,8 +549,8 @@ namespace AlterLinePictureAproximator
 
                         Color p1 = cline0[index / COLORS, z];
                         Color p2 = cline1[index % COLORS, z];
-                        //bitmap[x, y * 2, z] = index / COLORS;
-                        //bitmap[x, y * 2 + 1, z] = index % COLORS;
+                        bitmap[x, y * 2, z] = index / COLORS;
+                        bitmap[x, y * 2 + 1, z] = index % COLORS;
 
                         a.SetPixel(x * 2, y * 2, p1);
                         a.SetPixel(x * 2 + 1, y * 2, p1);
@@ -556,9 +580,9 @@ namespace AlterLinePictureAproximator
             }
         }
 
-        private double Distance(Color col1, Color col2, int distanceMethod)
+        private long Distance(Color col1, Color col2, int distanceMethod)
         {
-            double dist = double.MaxValue;
+            long dist = long.MaxValue;
             switch (distanceMethod)
             {
                 case 0:
@@ -582,20 +606,32 @@ namespace AlterLinePictureAproximator
             return dist;
         }
 
-        private (double distance, int index) FindCustomClosest2Reduced(int p8index, int distanceMethod, int inverse, int pmg)
+        private (long distance, int index) FindCustomClosest2Reduced(int p8index, int distanceMethod, int inverse, int pmg)
         {
-            int[] ignoreMatrix = pmg == 0 ? IGNORE_PMG_MATRIX5 : IGNORE_BG_MATRIX5;
-            double[] mindist = new double[2] { double.MaxValue, double.MaxValue };
+            /*
+            int[] ignoreMatrix = new int[COLORS*COLORS];
+            Array.Copy(pmg == 0 ? IGNORE_PMG_MATRIX5 : IGNORE_BG_MATRIX5, ignoreMatrix, COLORS * COLORS);
+            //Debug.WriteLine("-----");
+            for (int i = 0; i < ignoreMatrix.Length; i++)
+            {
+                ignoreMatrix[i] &= hepaMatrix[i, inverse];
+                //Debug.Write($"{hepaMatrix[i, 1]} ");
+                //if (i % 5 == 4) Debug.WriteLine("");
+            }
+            */
+
+            long[] mindist = new long[2] { long.MaxValue, long.MaxValue };
             int[] index = new int[2];
+
             int indexs = customP8Match[p8index, inverse, pmg];
             if (indexs == -1)
             {
                 for (byte i = 0; i < COLORS * COLORS; i++)
                 {
-                    if (ignoreMatrix[i] != 0)
-                        if (COMMON_MATRIX5[i] != 0) //optimization for same colors
+                    if (colorIgnoreMatrix[i, inverse, pmg] != 0)
+                        /*if (COMMON_MATRIX5[i] != 0) //optimization for same colors
                         {
-                            double dist = Distance(palette8[p8index], customColors[i, 0], distanceMethod);
+                            long dist = Distance(palette8[p8index], customColors[i, 0], distanceMethod);
                             if (dist < mindist[0])
                             {
                                 mindist[0] = dist;
@@ -608,22 +644,29 @@ namespace AlterLinePictureAproximator
                             }
                         }
                         else
-                        {   //for different colors (colpf2,3)
-                            for (int j = 0; j < 2; j++) //inverse
-                            {
-                                double dist = Distance(palette8[p8index], customColors[i, j], distanceMethod);
+                        */
+                        {  
+                        
+                        
+                        //for different colors (colpf2,3)
+                            //for (int j = 0; j < 2; j++) //inverse
+                            //{
+                            int j = inverse;
+                                long dist = Distance(palette8[p8index], customColors[i, j], distanceMethod);
                                 if (dist < mindist[j])
                                 {
                                     mindist[j] = dist;
                                     index[j] = i;
                                 }
-                            }
+                            //}
                         }
                 }
-                customP8Match[p8index, 0, pmg] = (byte)(index[0]);
+                /*customP8Match[p8index, 0, pmg] = (byte)(index[0]);
                 customP8MatchDist[p8index, 0, pmg] = mindist[0];
                 customP8Match[p8index, 1, pmg] = (byte)(index[1]);
-                customP8MatchDist[p8index, 1, pmg] = mindist[1];
+                customP8MatchDist[p8index, 1, pmg] = mindist[1];*/
+                customP8Match[p8index, inverse, pmg] = (byte)(index[inverse]);
+                customP8MatchDist[p8index, inverse, pmg] = mindist[inverse];
                 return (distance: mindist[inverse], index: index[inverse]);
             }
             else
@@ -633,13 +676,13 @@ namespace AlterLinePictureAproximator
         private int[] FindCustomClosest2(Color color, int distanceMethod, bool inverse)
         {
             int inv = inverse ? 1 : 0;
-            double mindist = double.MaxValue;
+            long mindist = long.MaxValue;
             int index = customP24Match[color.R, color.G, color.B, inv] - 1;
             if (index < 0)
             {
                 for (byte i = 0; i < COLORS * COLORS; i++)
                 {
-                    double dist = Distance(color, customColors[i, inv], distanceMethod);
+                    long dist = Distance(color, customColors[i, inv], distanceMethod);
                     if (dist < mindist)
                     {
                         mindist = dist;
@@ -657,7 +700,7 @@ namespace AlterLinePictureAproximator
             return new int[2] { index, (int)mindist };
         }
 
-        private static double Difference(Color col1, Color col2)
+        private static long Difference(Color col1, Color col2)
         {
             int dr = col2.R - col1.R;
             int dg = col2.G - col1.G;
@@ -665,7 +708,7 @@ namespace AlterLinePictureAproximator
             return Math.Abs(dr) + Math.Abs(dg) + Math.Abs(db);
         }
 
-        private float RGByuvDistance(Color col1, Color col2)
+        private long RGByuvDistance(Color col1, Color col2)
         {
             //uint DISTANCE_MAX = 0xffffffff;
 
@@ -682,10 +725,10 @@ namespace AlterLinePictureAproximator
             //if (d > (float)DISTANCE_MAX)
 
             //    d = (float)DISTANCE_MAX;
-            return d;
+            return (long)d;
         }
 
-        private float RGBEuclidianDistance(Color col1, Color col2)
+        private long RGBEuclidianDistance(Color col1, Color col2)
         {
             //uint DISTANCE_MAX = 0xffffffff;
 
@@ -693,7 +736,7 @@ namespace AlterLinePictureAproximator
             int dg = col2.G - col1.G;
             int db = col2.B - col1.B;
 
-            float d = dr * dr + dg * dg + db * db;
+            long d = dr * dr + dg * dg + db * db;
 
             //if (d > (float)DISTANCE_MAX)
 
@@ -701,16 +744,17 @@ namespace AlterLinePictureAproximator
             return d;
         }
 
-        private float WeightedRGBDistance(Color e1, Color e2)
+        private long WeightedRGBDistance(Color e1, Color e2)
         {
             long rmean = ((long)e1.R + (long)e2.R) / 2;
             long r = (long)e1.R - (long)e2.R;
             long g = (long)e1.G - (long)e2.G;
             long b = (long)e1.B - (long)e2.B;
-            return (float)Math.Sqrt((((512 + rmean) * r * r) >> 8) + 4 * g * g + (((767 - rmean) * b * b) >> 8));
+            //return (float)Math.Sqrt((((512 + rmean) * r * r) >> 8) + 4 * g * g + (((767 - rmean) * b * b) >> 8));
+            return (((512 + rmean) * r * r) >> 8) + 4 * g * g + (((767 - rmean) * b * b) >> 8);
         }
 
-        private float YUVEuclidianDistance(Color c1, Color c2)
+        private long YUVEuclidianDistance(Color c1, Color c2)
         {
             //uint DISTANCE_MAX = 0xffffffff;
             byte[] z1 = RGB2YUV(c1.R, c1.G, c1.B);
@@ -719,7 +763,7 @@ namespace AlterLinePictureAproximator
             int du = z1[1] - z2[1];
             int dv = z1[2] - z2[2];
 
-            float d = dy * dy + du * du + dv * dv;
+            long d = dy * dy + du * du + dv * dv;
 
             //if (d > (float)DISTANCE_MAX)
 
@@ -729,13 +773,13 @@ namespace AlterLinePictureAproximator
 
         private void ButtonMixIt_Click(object sender, EventArgs e)
         {
-            double totalDiffMix = MixIt();
+            long totalDiffMix = MixIt();
             //double totalDiff = CalcDiff(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
             //buttonMixIt.Text = $"Mix:{((int)(totalDiff/totalPixels)).ToString()} Calc:{((int)(totalDiffMix/totalPixels)).ToString()}";
             labelDiff.Text = $"Diff: {(int)(totalDiffMix / totalPixels)}";
         }
 
-        private double MixIt()
+        private long MixIt()
         {
             Bitmap b = new Bitmap(pictureBoxAtariAprox.Image); //non inverse
             Bitmap m = new Bitmap(pictureBoxAtariAprox.Image);
@@ -743,17 +787,17 @@ namespace AlterLinePictureAproximator
             Graphics gb = Graphics.FromImage(b);
             Graphics gm = Graphics.FromImage(m);
             Graphics ga = Graphics.FromImage(a);
-            double totalDiff = 0;
+            long totalDiff = 0;
             int charHeight = b.Height / 8;
             mask = new int[32, charHeight];
-            double[,,] chardiff = new double[32, charHeight, 2];
+            long[,,] chardiff = new long[32, charHeight, 2];
             for (int y = 0; y < charHeight; y++)
                 for (int x = 0; x < 32; x++)
                 {
                     for (int z = 0; z < 2; z++)
                         for (int cy = 0; cy < 4; cy++)
                             for (int cx = 0; cx < 4; cx++)
-                                chardiff[x, y, z] += Math.Pow(diff_matrix[x * 4 + cx, y * 4 + cy, z, 0], 2);
+                                chardiff[x, y, z] += (long)(Math.Pow(diff_matrix[x * 4 + cx, y * 4 + cy, z, 0], 2));
                     if (chardiff[x, y, 0] > chardiff[x, y, 1])
                     {
                         gb.DrawImage(pictureBoxAtariAproxInverse.Image, x * 8, y * 8, new Rectangle(x * 8, y * 8, 8, 8), GraphicsUnit.Pixel);
@@ -848,12 +892,12 @@ namespace AlterLinePictureAproximator
                 line1[1] = line0[1]; //common color
                 CreatePal(comboBoxAverMethod.SelectedIndex, true);
                 //double totalDiff = CalcDiff2(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
-                (double totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2P8(comboBoxDistance.SelectedIndex);
+                (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2P8(comboBoxDistance.SelectedIndex);
                 if (i == 0)
                     Redraw(bitmapDataIndexed, charMask, pmgMask);
                 AlpaItem ai = new();
                 ai.Diff = totalDiff;
-                ai.Ppdiff = totalDiff / totalPixels;
+                ai.Ppdiff = (int)(totalDiff / totalPixels);
                 ai.Line0 = (byte[])line0.Clone();
                 ai.Line1 = (byte[])line1.Clone();
                 alpaItems.Add(ai);
@@ -890,14 +934,15 @@ namespace AlterLinePictureAproximator
                 }
 
                 AlpaItem ai = new AlpaItem();
-                ai.Diff = Double.MaxValue;
-                ai.Ppdiff = Double.MaxValue;
+                ai.Diff = long.MaxValue;
+                ai.Ppdiff = int.MaxValue;
                 ai.Line0 = (byte[])line0.Clone();
                 ai.Line1 = (byte[])line1.Clone();
                 alpaItems.Add(ai);
             }
 
-            double bestDiff = double.MaxValue;
+            long bestDiff = long.MaxValue;
+
             for (int i = 0; i < generations; i++)
             {
                 CentauriGeneration(population);
@@ -910,8 +955,10 @@ namespace AlterLinePictureAproximator
                 {
                     bestDiff = alpaItems[0].Ppdiff;
                     CreatePal(comboBoxAverMethod.SelectedIndex, false);
-                    DoConvert(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
-                    MixIt();
+                    //DoConvert(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
+                    //MixIt();
+                    (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2P8(comboBoxDistance.SelectedIndex);
+                    Redraw(bitmapDataIndexed, charMask, pmgMask);
                 }
                 else
                 {
@@ -924,8 +971,10 @@ namespace AlterLinePictureAproximator
             ListPopulation(); // fill up the listview
 
             CreatePal(comboBoxAverMethod.SelectedIndex, false);
-            DoConvert(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
-            MixIt();
+            //DoConvert(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
+            //MixIt();
+            (long totalDiff2, int[,] bitmapDataIndexed2, int[,] charMask2, int[,] pmgMask2) = CalcDiff2P8(comboBoxDistance.SelectedIndex);
+            Redraw(bitmapDataIndexed2, charMask2, pmgMask2);
         }
 
         private void ListPopulation()
@@ -955,9 +1004,9 @@ namespace AlterLinePictureAproximator
                     Array.Copy(ai.Line1, line1, line1.Length);
                     CreatePal(averageMethod, true);
                     //double totalDiff = CalcDiff2(averageMethod, distanceMethod, useDither, ditherMethod);
-                    double totalDiff = CalcDiff2P8(distanceMethod).totalDiff;
+                    long totalDiff = CalcDiff2P8(distanceMethod).totalDiff;
                     ai.Diff = totalDiff;
-                    ai.Ppdiff = totalDiff / totalPixels;
+                    ai.Ppdiff = (int)(totalDiff / totalPixels);
                     alpaItems.Add(ai);
                 }
             List<AlpaItem> sorted = alpaItems.OrderBy(d => d.Diff).ToList();
@@ -1056,7 +1105,7 @@ namespace AlterLinePictureAproximator
 
         private void AtariExport()
         {
-            (double totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2P8(comboBoxDistance.SelectedIndex);
+            (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2P8(comboBoxDistance.SelectedIndex);
             byte[] vram = new byte[32 * 24];
             int height = charMask.GetLength(1);
             for (int y = 0; y < height; y++)
@@ -1332,7 +1381,7 @@ namespace AlterLinePictureAproximator
         private void button1_Click(object sender, EventArgs e)
         {
             CreatePal(comboBoxAverMethod.SelectedIndex, true);
-            (double totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2P8(comboBoxDistance.SelectedIndex);
+            (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2P8(comboBoxDistance.SelectedIndex);
             Redraw(bitmapDataIndexed, charMask, pmgMask);
         }
     }

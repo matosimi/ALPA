@@ -72,6 +72,12 @@
             progressBarAI = new ProgressBar();
             labelGenerationDone = new Label();
             button1 = new Button();
+            groupBox1 = new GroupBox();
+            label2 = new Label();
+            numericUpDownHepaChroma = new NumericUpDown();
+            label6 = new Label();
+            numericUpDownHepaLuma = new NumericUpDown();
+            checkBoxHepa = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAprox).BeginInit();
@@ -88,6 +94,9 @@
             ((System.ComponentModel.ISupportInitialize)pictureBoxMasks).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownPopulation).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownGeneration).BeginInit();
+            groupBox1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)numericUpDownHepaChroma).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)numericUpDownHepaLuma).BeginInit();
             SuspendLayout();
             // 
             // pictureBoxSource
@@ -368,7 +377,7 @@
             checkBoxAutoUpdate.AutoSize = true;
             checkBoxAutoUpdate.Checked = true;
             checkBoxAutoUpdate.CheckState = CheckState.Checked;
-            checkBoxAutoUpdate.Location = new Point(268, 530);
+            checkBoxAutoUpdate.Location = new Point(21, 738);
             checkBoxAutoUpdate.Margin = new Padding(4, 5, 4, 5);
             checkBoxAutoUpdate.Name = "checkBoxAutoUpdate";
             checkBoxAutoUpdate.Size = new Size(133, 29);
@@ -400,7 +409,7 @@
             // 
             // numericUpDownPopulation
             // 
-            numericUpDownPopulation.Location = new Point(132, 750);
+            numericUpDownPopulation.Location = new Point(135, 777);
             numericUpDownPopulation.Margin = new Padding(4, 5, 4, 5);
             numericUpDownPopulation.Maximum = new decimal(new int[] { 400, 0, 0, 0 });
             numericUpDownPopulation.Minimum = new decimal(new int[] { 4, 0, 0, 0 });
@@ -411,7 +420,7 @@
             // 
             // numericUpDownGeneration
             // 
-            numericUpDownGeneration.Location = new Point(132, 799);
+            numericUpDownGeneration.Location = new Point(135, 826);
             numericUpDownGeneration.Margin = new Padding(4, 5, 4, 5);
             numericUpDownGeneration.Maximum = new decimal(new int[] { 200, 0, 0, 0 });
             numericUpDownGeneration.Name = "numericUpDownGeneration";
@@ -422,7 +431,7 @@
             // label3
             // 
             label3.AutoSize = true;
-            label3.Location = new Point(18, 764);
+            label3.Location = new Point(21, 779);
             label3.Margin = new Padding(4, 0, 4, 0);
             label3.Name = "label3";
             label3.Size = new Size(97, 25);
@@ -432,7 +441,7 @@
             // label4
             // 
             label4.AutoSize = true;
-            label4.Location = new Point(18, 801);
+            label4.Location = new Point(21, 828);
             label4.Margin = new Padding(4, 0, 4, 0);
             label4.Name = "label4";
             label4.Size = new Size(106, 25);
@@ -534,11 +543,82 @@
             button1.UseVisualStyleBackColor = true;
             button1.Click += button1_Click;
             // 
+            // groupBox1
+            // 
+            groupBox1.Controls.Add(checkBoxHepa);
+            groupBox1.Controls.Add(numericUpDownHepaLuma);
+            groupBox1.Controls.Add(label6);
+            groupBox1.Controls.Add(label2);
+            groupBox1.Controls.Add(numericUpDownHepaChroma);
+            groupBox1.Location = new Point(253, 392);
+            groupBox1.Name = "groupBox1";
+            groupBox1.Size = new Size(173, 222);
+            groupBox1.TabIndex = 37;
+            groupBox1.TabStop = false;
+            groupBox1.Text = "HEPA filter";
+            toolTip1.SetToolTip(groupBox1, "Human Eye Perception Adjustment Filter");
+            // 
+            // label2
+            // 
+            label2.AutoSize = true;
+            label2.Location = new Point(7, 153);
+            label2.Margin = new Padding(4, 0, 4, 0);
+            label2.Name = "label2";
+            label2.Size = new Size(152, 25);
+            label2.TabIndex = 39;
+            label2.Text = "Chroma max step";
+            // 
+            // numericUpDownHepaChroma
+            // 
+            numericUpDownHepaChroma.Increment = new decimal(new int[] { 2, 0, 0, 0 });
+            numericUpDownHepaChroma.Location = new Point(14, 183);
+            numericUpDownHepaChroma.Margin = new Padding(4, 5, 4, 5);
+            numericUpDownHepaChroma.Maximum = new decimal(new int[] { 14, 0, 0, 0 });
+            numericUpDownHepaChroma.Name = "numericUpDownHepaChroma";
+            numericUpDownHepaChroma.Size = new Size(81, 31);
+            numericUpDownHepaChroma.TabIndex = 38;
+            numericUpDownHepaChroma.Value = new decimal(new int[] { 14, 0, 0, 0 });
+            // 
+            // label6
+            // 
+            label6.AutoSize = true;
+            label6.Location = new Point(8, 87);
+            label6.Margin = new Padding(4, 0, 4, 0);
+            label6.Name = "label6";
+            label6.Size = new Size(132, 25);
+            label6.TabIndex = 40;
+            label6.Text = "Luma max step";
+            // 
+            // numericUpDownHepaLuma
+            // 
+            numericUpDownHepaLuma.Increment = new decimal(new int[] { 2, 0, 0, 0 });
+            numericUpDownHepaLuma.Location = new Point(14, 117);
+            numericUpDownHepaLuma.Margin = new Padding(4, 5, 4, 5);
+            numericUpDownHepaLuma.Maximum = new decimal(new int[] { 14, 0, 0, 0 });
+            numericUpDownHepaLuma.Name = "numericUpDownHepaLuma";
+            numericUpDownHepaLuma.Size = new Size(81, 31);
+            numericUpDownHepaLuma.TabIndex = 41;
+            numericUpDownHepaLuma.Value = new decimal(new int[] { 14, 0, 0, 0 });
+            // 
+            // checkBoxHepa
+            // 
+            checkBoxHepa.AutoSize = true;
+            checkBoxHepa.Checked = true;
+            checkBoxHepa.CheckState = CheckState.Checked;
+            checkBoxHepa.Location = new Point(13, 46);
+            checkBoxHepa.Margin = new Padding(4, 5, 4, 5);
+            checkBoxHepa.Name = "checkBoxHepa";
+            checkBoxHepa.Size = new Size(138, 29);
+            checkBoxHepa.TabIndex = 42;
+            checkBoxHepa.Text = "Enable HEPA";
+            checkBoxHepa.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(144F, 144F);
             AutoScaleMode = AutoScaleMode.Dpi;
             ClientSize = new Size(1729, 954);
+            Controls.Add(groupBox1);
             Controls.Add(button1);
             Controls.Add(labelGenerationDone);
             Controls.Add(progressBarAI);
@@ -588,6 +668,10 @@
             ((System.ComponentModel.ISupportInitialize)pictureBoxMasks).EndInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownPopulation).EndInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownGeneration).EndInit();
+            groupBox1.ResumeLayout(false);
+            groupBox1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)numericUpDownHepaChroma).EndInit();
+            ((System.ComponentModel.ISupportInitialize)numericUpDownHepaLuma).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -637,5 +721,11 @@
         private PictureBox pictureBoxResult;
         private Button button1;
         private PictureBox pictureBoxMasks;
+        private GroupBox groupBox1;
+        private NumericUpDown numericUpDownHepaLuma;
+        private Label label6;
+        private Label label2;
+        private NumericUpDown numericUpDownHepaChroma;
+        private CheckBox checkBoxHepa;
     }
 }
