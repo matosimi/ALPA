@@ -6,6 +6,7 @@ namespace AlterLinePictureAproximator
     using System.Diagnostics;
     using System.Drawing;
     using System.Globalization;
+    using System.Linq;
     using System.Net.Security;
     using System.Numerics;
     using System.Reflection;
@@ -15,7 +16,12 @@ namespace AlterLinePictureAproximator
     using System.Security.Cryptography.X509Certificates;
     using System.Text.Json.Serialization.Metadata;
 
-
+/*todo: no. of colors
+ * limited height based on src size
+ * test interlace with constant colors in each frame (square pixels)
+ * dithering
+ * 
+ */
     public partial class Form1 : Form
     {
         public Form1()
@@ -52,7 +58,7 @@ namespace AlterLinePictureAproximator
         /// <summary>colors that are joined between scanlines (background and PMG layer)</summary>
         public static readonly int[] JOINED_COLORS = { 0, 0, 0, 0, 1, 1 };
         /// <summary>colors that are locked for the change by AI (background)</summary>
-        public static readonly int[] LOCKED_COLORS = { 0, 0, 0, 0, 1, 0 };
+        public static readonly int[] LOCKED_COLORS = { 0, 0, 0, 0, 0, 0 };
 
         public Color[,] cline0 = new Color[COLORS, 2];
         public Color[,] cline1 = new Color[COLORS, 2];
@@ -191,8 +197,8 @@ namespace AlterLinePictureAproximator
                     for (int b = 0; b < COLORS; b++)
                     {
                         customColors[index, z] = AverageColor(l0[a], l1[b], method);
-                        //hepaMatrix[index, z] = Math.Abs((l0[a] % 16) - (l1[b] % 16)) <= hepaLumaFilter ? 1 : 0;
-                        int hepaItem = Math.Abs((l0[a] % 16) - (l1[b] % 16)) <= hepaLumaFilter ? 1 : 0;
+                        int loopingColorDifference = Math.Min(Math.Abs((l0[a] / 16) - (l1[b] / 16)), 16 - (Math.Abs((l0[a] / 16) - (l1[b] / 16))));
+                        int hepaItem = (Math.Abs((l0[a] % 16) - (l1[b] % 16)) <= hepaLumaFilter) && (loopingColorDifference <= hepaChromaFilter) ? 1 : 0;
                         colorIgnoreMatrix[index, z, 0] = hepaItem & IGNORE_PMG_MATRIX5[index];
                         colorIgnoreMatrix[index, z, 1] = hepaItem & IGNORE_BG_MATRIX5[index];
                         index++;
@@ -202,21 +208,47 @@ namespace AlterLinePictureAproximator
                 }
             }
 
+            //count the colors
+            List<Color> colors = new();
+            for (int z = 0; z < 2;z++)
+                for (int t = 0; t < 2; t++)
+            for (int i = 0; i < customColors.GetLength(0);i++)
+            {
+                if (colorIgnoreMatrix[i,z,t] != 0 && !colors.Contains(customColors[i, z]))
+                            colors.Add(customColors[i,z]);
+            }
+            labelPossibleColors.Text = $"Colors: {colors.Count} ";
+            colors.Clear();
             //drawing part
             if (!noDraw)
             {
-                Bitmap p = new Bitmap(COLORS * 16 * 2, (COLORS + 2) * 16);
+                Bitmap p = new Bitmap(COLORS * 16 * 2, (COLORS + 2 + 2) * 16);
                 Graphics g = Graphics.FromImage(p);
                 const int OFFSET = COLORS * 16 + 1;
                 for (int z = 0; z < 2; z++)
                     for (int a = 0; a < COLORS; a++)
                     {
                         for (int b = 0; b < COLORS; b++)
+                        {
                             g.FillRectangle(new SolidBrush(customColors[a * COLORS + b, z]), new Rectangle(b * 16 + OFFSET * z, a * 16, 16, 16));
+                        }
                         g.FillRectangle(new SolidBrush(cline0[a, z]), new Rectangle(a * 16 + OFFSET * z, OFFSET, 16, 16));
                         g.FillRectangle(new SolidBrush(cline1[a, z]), new Rectangle(a * 16 + OFFSET * z, OFFSET + 16, 16, 16));
                     }
                 pictureBoxPalette.Image = p;
+                //draw the lock and join icons
+                int[] iconColorMatch = new int[10] { 0, 1, 2, 4, 5, -1, -1, 3, -1, -1 };
+                for (int i = 0; i < COLORS * 2; i++)  //how many squares we have there
+                {
+                    if (iconColorMatch[i] >= 0)
+                    {
+                        int lockIndex = LOCKED_COLORS[iconColorMatch[i]] == 0 ? 14 : 0;
+                        g.DrawImage(pictureBoxIcons.Image, new Rectangle(i * 16, OFFSET + 32, 14, 14), new Rectangle(lockIndex, 0, 14, 14), GraphicsUnit.Pixel);
+                        int jointIndex = JOINED_COLORS[iconColorMatch[i]] == 0 ? 14 : 0;
+                        if (iconColorMatch[i] > 3) jointIndex = 28; //forced join for BG and PMG
+                        g.DrawImage(pictureBoxIcons.Image, new Rectangle(i * 16, OFFSET + 32 + 16, 14, 14), new Rectangle(jointIndex, 14, 14, 14), GraphicsUnit.Pixel);
+                    }
+                }
             }
             Array.Clear(customP24Match);
         }
@@ -1071,7 +1103,7 @@ namespace AlterLinePictureAproximator
             ai.Line1 = lineSec;
         }
 
-        private void pictureBoxPalette_MouseDown(object sender, MouseEventArgs e)
+        private void PictureBoxPalette_MouseDown(object sender, MouseEventArgs e)
         {
             int[] remap = { 0, 1, 2, 4, 5, 0, 1, 3, 4, 5 };
             int[] joint = { 0, 0, 0, 1, 1, 0, 0, 0, 1, 1 };   //defines which colors are joined(constant) between dlilines
@@ -1079,21 +1111,37 @@ namespace AlterLinePictureAproximator
             {
                 int line = (e.Y - COLORS * 16 - 1) / 16;
                 int index = (e.X / 16) % remap.Length;
-                Color col = atariColorPicker.Pick(line == 0 ? line0[remap[index]] : line1[remap[index]]);
-                if (atariColorPicker.PickedNewColor)
-                    if (line == 0)
-                    {
-                        line0[remap[index]] = atariColorPicker.PickedColorIndex;
-                        if (joint[index] == 1)
-                            line1[remap[index]] = atariColorPicker.PickedColorIndex;
-                    }
-                    else
-                    {
-                        line1[remap[index]] = atariColorPicker.PickedColorIndex;
-                        if (joint[index] == 1)
-                            line0[remap[index]] = atariColorPicker.PickedColorIndex;
 
-                    }
+
+                switch (line)
+                {
+                    case 0:
+                        atariColorPicker.Pick(line == 0 ? line0[remap[index]] : line1[remap[index]]);
+                        if (atariColorPicker.PickedNewColor)
+                        {
+                            line0[remap[index]] = atariColorPicker.PickedColorIndex;
+                            if (joint[index] == 1)
+                                line1[remap[index]] = atariColorPicker.PickedColorIndex;
+                        }
+                        break;
+                    case 1:
+                        atariColorPicker.Pick(line == 0 ? line0[remap[index]] : line1[remap[index]]);
+                        if (atariColorPicker.PickedNewColor)
+                        {
+                            line1[remap[index]] = atariColorPicker.PickedColorIndex;
+                            if (joint[index] == 1)
+                                line0[remap[index]] = atariColorPicker.PickedColorIndex;
+                        }
+                        break;
+                    case 2:
+                        LOCKED_COLORS[remap[index]] = LOCKED_COLORS[remap[index]] == 0 ? 1 : 0;
+                        break;
+                    case 3:
+                        if (remap[index] < 4) //only for colors that can be joined
+                            JOINED_COLORS[remap[index]] = JOINED_COLORS[remap[index]] == 0 ? 1 : 0;
+                        break;
+                }
+
                 CreatePal(comboBoxAverMethod.SelectedIndex);
                 if (checkBoxAutoUpdate.Checked)
                 {
@@ -1207,8 +1255,10 @@ namespace AlterLinePictureAproximator
                 Array.Copy(alpaItems[listViewPopulation.SelectedIndices[0]].Line0, line0, line0.Length);
                 Array.Copy(alpaItems[listViewPopulation.SelectedIndices[0]].Line1, line1, line0.Length);
                 CreatePal(comboBoxAverMethod.SelectedIndex, false);
-                DoConvert(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
-                MixIt();
+                //DoConvert(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
+                //MixIt();
+                (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2P8(comboBoxDistance.SelectedIndex);
+                Redraw(bitmapDataIndexed, charMask, pmgMask);
             }
         }
 
@@ -1243,14 +1293,15 @@ namespace AlterLinePictureAproximator
                 {
                     int rgb = ((srcChannelMatrix[x, y, 0] << 16)) | ((srcChannelMatrix[x, y, 1] << 8)) | (srcChannelMatrix[x, y, 2]);
 
-                    if (histogram.ContainsKey(rgb))
-                    {
+                    //if (histogram.ContainsKey(rgb))
+                    if (!histogram.TryAdd(rgb, 1))
+                    
                         histogram[rgb] += 1;
-                    }
+                    /*
                     else
                     {
                         histogram.Add(rgb, 1);
-                    }
+                    }*/
                 }
             List<RGBHisto> histoList = new List<RGBHisto>();
             foreach (int rgb in histogram.Keys)
