@@ -31,15 +31,8 @@
             components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             pictureBoxSource = new PictureBox();
-            buttonApproximate = new Button();
-            pictureBoxAprox = new PictureBox();
-            pictureBoxAtariAprox = new PictureBox();
             pictureBoxPalette = new PictureBox();
-            pictureBoxAproxInverse = new PictureBox();
-            pictureBoxAtariAproxInverse = new PictureBox();
             pictureBoxIdealDither = new PictureBoxWithInterpolationMode();
-            buttonMixIt = new Button();
-            pictureBoxCharMask = new PictureBox();
             comboBoxDither = new ComboBox();
             checkBoxUseDither = new CheckBox();
             comboBoxDistance = new ComboBox();
@@ -52,7 +45,6 @@
             pictureBoxResult = new PictureBoxWithInterpolationMode();
             pictureBoxMasks = new PictureBoxWithInterpolationMode();
             pictureBoxResultLines = new PictureBoxWithInterpolationMode();
-            pictureBoxAproxMix = new PictureBoxWithInterpolationMode();
             buttonXex = new Button();
             checkBoxInterlace = new CheckBox();
             checkBoxAutoUpdate = new CheckBox();
@@ -84,22 +76,17 @@
             labelOutputSize = new Label();
             splitContainer1 = new SplitContainer();
             panel1 = new Panel();
+            labelSolutions = new Label();
             label7 = new Label();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAprox).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxPalette).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBoxAproxInverse).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAproxInverse).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxIdealDither).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBoxCharMask).BeginInit();
             flowLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSrcData).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSrcReduced).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxResult).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxMasks).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxResultLines).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBoxAproxMix).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownPopulation).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownGeneration).BeginInit();
             groupBox1.SuspendLayout();
@@ -124,37 +111,6 @@
             pictureBoxSource.TabIndex = 0;
             pictureBoxSource.TabStop = false;
             // 
-            // buttonApproximate
-            // 
-            buttonApproximate.Location = new Point(430, 5);
-            buttonApproximate.Margin = new Padding(4, 5, 4, 5);
-            buttonApproximate.Name = "buttonApproximate";
-            buttonApproximate.Size = new Size(132, 121);
-            buttonApproximate.TabIndex = 1;
-            buttonApproximate.Text = "Approximate";
-            buttonApproximate.UseVisualStyleBackColor = true;
-            buttonApproximate.Click += ButtonApproximate_Click;
-            // 
-            // pictureBoxAprox
-            // 
-            pictureBoxAprox.Location = new Point(112, 95);
-            pictureBoxAprox.Margin = new Padding(4, 5, 4, 5);
-            pictureBoxAprox.Name = "pictureBoxAprox";
-            pictureBoxAprox.Size = new Size(100, 80);
-            pictureBoxAprox.TabIndex = 2;
-            pictureBoxAprox.TabStop = false;
-            // 
-            // pictureBoxAtariAprox
-            // 
-            pictureBoxAtariAprox.BackColor = SystemColors.ActiveCaption;
-            pictureBoxAtariAprox.Location = new Point(544, 5);
-            pictureBoxAtariAprox.Margin = new Padding(4, 5, 4, 5);
-            pictureBoxAtariAprox.Name = "pictureBoxAtariAprox";
-            pictureBoxAtariAprox.Size = new Size(100, 80);
-            pictureBoxAtariAprox.TabIndex = 3;
-            pictureBoxAtariAprox.TabStop = false;
-            toolTip1.SetToolTip(pictureBoxAtariAprox, "konina");
-            // 
             // pictureBoxPalette
             // 
             pictureBoxPalette.ErrorImage = null;
@@ -167,28 +123,10 @@
             pictureBoxPalette.TabStop = false;
             pictureBoxPalette.MouseDown += PictureBoxPalette_MouseDown;
             // 
-            // pictureBoxAproxInverse
-            // 
-            pictureBoxAproxInverse.Location = new Point(220, 95);
-            pictureBoxAproxInverse.Margin = new Padding(4, 5, 4, 5);
-            pictureBoxAproxInverse.Name = "pictureBoxAproxInverse";
-            pictureBoxAproxInverse.Size = new Size(100, 80);
-            pictureBoxAproxInverse.TabIndex = 6;
-            pictureBoxAproxInverse.TabStop = false;
-            // 
-            // pictureBoxAtariAproxInverse
-            // 
-            pictureBoxAtariAproxInverse.Location = new Point(652, 5);
-            pictureBoxAtariAproxInverse.Margin = new Padding(4, 5, 4, 5);
-            pictureBoxAtariAproxInverse.Name = "pictureBoxAtariAproxInverse";
-            pictureBoxAtariAproxInverse.Size = new Size(100, 80);
-            pictureBoxAtariAproxInverse.TabIndex = 7;
-            pictureBoxAtariAproxInverse.TabStop = false;
-            // 
             // pictureBoxIdealDither
             // 
             pictureBoxIdealDither.BackColor = Color.Fuchsia;
-            pictureBoxIdealDither.Location = new Point(4, 95);
+            pictureBoxIdealDither.Location = new Point(544, 5);
             pictureBoxIdealDither.Margin = new Padding(4, 5, 4, 5);
             pictureBoxIdealDither.Name = "pictureBoxIdealDither";
             pictureBoxIdealDither.Size = new Size(100, 80);
@@ -196,27 +134,6 @@
             pictureBoxIdealDither.TabIndex = 8;
             pictureBoxIdealDither.TabStop = false;
             toolTip1.SetToolTip(pictureBoxIdealDither, "Ideal dithered image");
-            // 
-            // buttonMixIt
-            // 
-            buttonMixIt.Location = new Point(439, 235);
-            buttonMixIt.Margin = new Padding(4, 5, 4, 5);
-            buttonMixIt.Name = "buttonMixIt";
-            buttonMixIt.Size = new Size(132, 121);
-            buttonMixIt.TabIndex = 9;
-            buttonMixIt.Text = "Mix";
-            buttonMixIt.UseVisualStyleBackColor = true;
-            buttonMixIt.Click += ButtonMixIt_Click;
-            // 
-            // pictureBoxCharMask
-            // 
-            pictureBoxCharMask.Location = new Point(436, 95);
-            pictureBoxCharMask.Margin = new Padding(4, 5, 4, 5);
-            pictureBoxCharMask.Name = "pictureBoxCharMask";
-            pictureBoxCharMask.Size = new Size(100, 80);
-            pictureBoxCharMask.TabIndex = 10;
-            pictureBoxCharMask.TabStop = false;
-            toolTip1.SetToolTip(pictureBoxCharMask, "Char inverse mask");
             // 
             // comboBoxDither
             // 
@@ -286,13 +203,7 @@
             flowLayoutPanel1.Controls.Add(pictureBoxResult);
             flowLayoutPanel1.Controls.Add(pictureBoxMasks);
             flowLayoutPanel1.Controls.Add(pictureBoxResultLines);
-            flowLayoutPanel1.Controls.Add(pictureBoxAtariAprox);
-            flowLayoutPanel1.Controls.Add(pictureBoxAtariAproxInverse);
             flowLayoutPanel1.Controls.Add(pictureBoxIdealDither);
-            flowLayoutPanel1.Controls.Add(pictureBoxAprox);
-            flowLayoutPanel1.Controls.Add(pictureBoxAproxInverse);
-            flowLayoutPanel1.Controls.Add(pictureBoxAproxMix);
-            flowLayoutPanel1.Controls.Add(pictureBoxCharMask);
             flowLayoutPanel1.Dock = DockStyle.Fill;
             flowLayoutPanel1.Location = new Point(0, 0);
             flowLayoutPanel1.Margin = new Padding(4, 5, 4, 5);
@@ -359,17 +270,6 @@
             pictureBoxResultLines.TabIndex = 16;
             pictureBoxResultLines.TabStop = false;
             toolTip1.SetToolTip(pictureBoxResultLines, "Result without blending");
-            // 
-            // pictureBoxAproxMix
-            // 
-            pictureBoxAproxMix.Location = new Point(328, 95);
-            pictureBoxAproxMix.Margin = new Padding(4, 5, 4, 5);
-            pictureBoxAproxMix.Name = "pictureBoxAproxMix";
-            pictureBoxAproxMix.Size = new Size(100, 80);
-            pictureBoxAproxMix.SizeMode = PictureBoxSizeMode.Zoom;
-            pictureBoxAproxMix.TabIndex = 12;
-            pictureBoxAproxMix.TabStop = false;
-            toolTip1.SetToolTip(pictureBoxAproxMix, "Result (interlaced view)");
             // 
             // buttonXex
             // 
@@ -636,12 +536,12 @@
             // 
             // button1
             // 
-            button1.Location = new Point(439, 366);
+            button1.Location = new Point(439, 115);
             button1.Margin = new Padding(4, 5, 4, 5);
             button1.Name = "button1";
-            button1.Size = new Size(131, 70);
+            button1.Size = new Size(131, 148);
             button1.TabIndex = 36;
-            button1.Text = "NEW";
+            button1.Text = "Generate";
             button1.UseVisualStyleBackColor = true;
             button1.Click += button1_Click;
             // 
@@ -696,15 +596,14 @@
             // 
             // panel1
             // 
+            panel1.Controls.Add(labelSolutions);
             panel1.Controls.Add(label7);
             panel1.Controls.Add(numericUpDownDitherStrength);
             panel1.Controls.Add(pictureBoxSource);
             panel1.Controls.Add(labelOutputSize);
-            panel1.Controls.Add(buttonApproximate);
             panel1.Controls.Add(pictureBoxIcons);
             panel1.Controls.Add(pictureBoxPalette);
             panel1.Controls.Add(labelPossibleColors);
-            panel1.Controls.Add(buttonMixIt);
             panel1.Controls.Add(groupBox1);
             panel1.Controls.Add(comboBoxDither);
             panel1.Controls.Add(button1);
@@ -734,6 +633,16 @@
             panel1.Size = new Size(583, 954);
             panel1.TabIndex = 0;
             // 
+            // labelSolutions
+            // 
+            labelSolutions.AutoSize = true;
+            labelSolutions.Location = new Point(204, 605);
+            labelSolutions.Margin = new Padding(4, 0, 4, 0);
+            labelSolutions.Name = "labelSolutions";
+            labelSolutions.Size = new Size(299, 25);
+            labelSolutions.TabIndex = 44;
+            labelSolutions.Text = "solutions: 11111, tries ratio: 2.45645";
+            // 
             // label7
             // 
             label7.AutoSize = true;
@@ -753,23 +662,17 @@
             Icon = (Icon)resources.GetObject("$this.Icon");
             Margin = new Padding(4, 5, 4, 5);
             Name = "Form1";
-            Text = "AlterLinePictureApproximator (ALPA) v0.8 by MatoSimi";
+            Text = "AlterLinePictureApproximator (ALPA) v0.9 by MatoSimi";
             Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBoxAprox).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAprox).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxPalette).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBoxAproxInverse).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBoxAtariAproxInverse).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxIdealDither).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBoxCharMask).EndInit();
             flowLayoutPanel1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)pictureBoxSrcData).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSrcReduced).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxResult).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxMasks).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxResultLines).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBoxAproxMix).EndInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownPopulation).EndInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownGeneration).EndInit();
             groupBox1.ResumeLayout(false);
@@ -790,14 +693,7 @@
         #endregion
 
         private PictureBox pictureBoxSource;
-        private Button buttonApproximate;
-        private PictureBox pictureBoxAprox;
-        private PictureBox pictureBoxAtariAprox;
         private PictureBox pictureBoxPalette;
-        private PictureBox pictureBoxAproxInverse;
-        private PictureBox pictureBoxAtariAproxInverse;
-        private Button buttonMixIt;
-        private PictureBox pictureBoxCharMask;
         private CheckBox checkBoxSimpleAvg;
         private ComboBox comboBoxDither;
         private CheckBox checkBoxUseDither;
@@ -837,7 +733,6 @@
         private SplitContainer splitContainer1;
         private Panel panel1;
         private PictureBoxWithInterpolationMode pictureBoxIdealDither;
-        private PictureBoxWithInterpolationMode pictureBoxAproxMix;
         private PictureBoxWithInterpolationMode pictureBoxSrcReduced;
         private PictureBoxWithInterpolationMode pictureBoxResult;
         private PictureBoxWithInterpolationMode pictureBoxMasks;
@@ -845,5 +740,6 @@
         private PictureBoxWithInterpolationMode pictureBoxSrcData;
         private NumericUpDown numericUpDownDitherStrength;
         private Label label7;
+        private Label labelSolutions;
     }
 }
