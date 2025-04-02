@@ -70,12 +70,13 @@
             numericUpDownDitherStrength = new NumericUpDown();
             progressBarAI = new ProgressBar();
             labelGenerationDone = new Label();
-            button1 = new Button();
+            buttonGenerate = new Button();
             labelPossibleColors = new Label();
             pictureBoxIcons = new PictureBox();
             labelOutputSize = new Label();
             splitContainer1 = new SplitContainer();
             panel1 = new Panel();
+            buttonImportColors = new Button();
             labelSolutions = new Label();
             label7 = new Label();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).BeginInit();
@@ -534,16 +535,16 @@
             labelGenerationDone.TabIndex = 35;
             labelGenerationDone.Text = "0";
             // 
-            // button1
+            // buttonGenerate
             // 
-            button1.Location = new Point(439, 115);
-            button1.Margin = new Padding(4, 5, 4, 5);
-            button1.Name = "button1";
-            button1.Size = new Size(131, 148);
-            button1.TabIndex = 36;
-            button1.Text = "Generate";
-            button1.UseVisualStyleBackColor = true;
-            button1.Click += button1_Click;
+            buttonGenerate.Location = new Point(439, 115);
+            buttonGenerate.Margin = new Padding(4, 5, 4, 5);
+            buttonGenerate.Name = "buttonGenerate";
+            buttonGenerate.Size = new Size(131, 148);
+            buttonGenerate.TabIndex = 36;
+            buttonGenerate.Text = "Generate";
+            buttonGenerate.UseVisualStyleBackColor = true;
+            buttonGenerate.Click += ButtonGenerate_Click;
             // 
             // labelPossibleColors
             // 
@@ -596,6 +597,7 @@
             // 
             // panel1
             // 
+            panel1.Controls.Add(buttonImportColors);
             panel1.Controls.Add(labelSolutions);
             panel1.Controls.Add(label7);
             panel1.Controls.Add(numericUpDownDitherStrength);
@@ -606,7 +608,7 @@
             panel1.Controls.Add(labelPossibleColors);
             panel1.Controls.Add(groupBox1);
             panel1.Controls.Add(comboBoxDither);
-            panel1.Controls.Add(button1);
+            panel1.Controls.Add(buttonGenerate);
             panel1.Controls.Add(checkBoxUseDither);
             panel1.Controls.Add(labelGenerationDone);
             panel1.Controls.Add(comboBoxDistance);
@@ -632,6 +634,17 @@
             panel1.Name = "panel1";
             panel1.Size = new Size(583, 954);
             panel1.TabIndex = 0;
+            // 
+            // buttonImportColors
+            // 
+            buttonImportColors.Location = new Point(192, 395);
+            buttonImportColors.Margin = new Padding(4, 5, 4, 5);
+            buttonImportColors.Name = "buttonImportColors";
+            buttonImportColors.Size = new Size(48, 153);
+            buttonImportColors.TabIndex = 45;
+            buttonImportColors.Text = "Import";
+            buttonImportColors.UseVisualStyleBackColor = true;
+            buttonImportColors.Click += ButtonImportColors_Click;
             // 
             // labelSolutions
             // 
@@ -720,7 +733,7 @@
         private ToolTip toolTip1;
         private ProgressBar progressBarAI;
         private Label labelGenerationDone;
-        private Button button1;
+        private Button buttonGenerate;
         private GroupBox groupBox1;
         private NumericUpDown numericUpDownHepaLuma;
         private Label label6;
@@ -741,5 +754,6 @@
         private NumericUpDown numericUpDownDitherStrength;
         private Label label7;
         private Label labelSolutions;
+        private Button buttonImportColors;
     }
 }

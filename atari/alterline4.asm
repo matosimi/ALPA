@@ -1,3 +1,4 @@
+;NTSC support
 
 color0	equ $2c4
 hposp0	equ $d000

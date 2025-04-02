@@ -22,9 +22,9 @@ namespace AlterLinePictureAproximator
     using System.Security.Cryptography.X509Certificates;
     using System.Text.Json.Serialization.Metadata;
 
-    /*todo: 
-     * dithering
-     * 
+    /*todo: dithering only in results
+     *todo: hepa luma as difference between RGB vals
+     *todo: proper initialization (do not delete current color setup)
      */
     public partial class Form1 : Form
     {
@@ -293,7 +293,7 @@ namespace AlterLinePictureAproximator
         private void PictureToChannel(int method)
         {
             Bitmap b = (Bitmap)pictureBoxSource.Image;
-            Bitmap t = new Bitmap(pictureBoxSource.Image.Width, pictureBoxSource.Image.Height/2);
+            Bitmap t = new Bitmap(pictureBoxSource.Image.Width, pictureBoxSource.Image.Height / 2);
             srcChannelMatrix = new byte[t.Width, t.Height, 3];
             for (int y = 0; y < t.Height; y++)
             {
@@ -305,14 +305,9 @@ namespace AlterLinePictureAproximator
                     srcChannelMatrix[x, y, 2] = src.B;
 
                     t.SetPixel(x, y, src);
-                    /*t.SetPixel(x * 2, y * 2, src);
-                    t.SetPixel(x * 2 + 1, y * 2, src);
-                    t.SetPixel(x * 2, y * 2 + 1, src);
-                    t.SetPixel(x * 2 + 1, y * 2 + 1, src);*/
                 }
             }
             pictureBoxSrcData.Image = new Bitmap(t);
-            //pictureBoxSrcData.Size = t.Size;
             totalPixels = srcChannelMatrix.Length / 3;
         }
 
@@ -363,15 +358,15 @@ namespace AlterLinePictureAproximator
                                     if (doDither)
                                     {
                                         int pixelIndex = (x * 4 + cx + (y * 4 + cy) * 128) * 3;
-                                        Color desiredColor = Color.FromArgb(bitmapPixelsDithered[pixelIndex+2], bitmapPixelsDithered[pixelIndex + 1], bitmapPixelsDithered[pixelIndex]);
+                                        Color desiredColor = Color.FromArgb(bitmapPixelsDithered[pixelIndex + 2], bitmapPixelsDithered[pixelIndex + 1], bitmapPixelsDithered[pixelIndex]);
                                         (distance, index) = FindCustomClosest2(desiredColor, distanceMethod, z, t);
                                         //distance = Distance(palette8[bit8map[x * 4 + cx, y * 4 + cy]], customColors[index, z], distanceMethod); //proper distance
                                     }
                                     else
                                         if (UseReducedSource)
-                                            (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceMethod, z, t);
-                                        else
-                                            (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceMethod, z, t);
+                                        (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceMethod, z, t);
+                                    else
+                                        (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceMethod, z, t);
 
                                     pmgDiff[cy, t, z] += (long)Math.Pow(distance, 2);
                                     bitmapCharDataIndexed[cx, cy, z, t] = index;
@@ -393,7 +388,7 @@ namespace AlterLinePictureAproximator
                 }
             return (totalDiff, bitmapDataIndexed, charMask: charMask, pmgMask: pmgMask);
         }
-    
+
         private void CreateIdealDitheredSolution(int DistanceMethod, int ditherMethod, float ditherFactor)
         {
             float[,] ditherMatrices = new float[3, 4] {
@@ -405,7 +400,7 @@ namespace AlterLinePictureAproximator
             float[] ditherValues = new float[4];
             for (int i = 0; i < 4; i++)
                 ditherValues[i] = ditherMatrices[ditherMethod, i] * ditherFactor;
-                    
+
             int width = srcChannelMatrix.GetLength(0);
             int height = srcChannelMatrix.GetLength(1);
 
@@ -469,14 +464,14 @@ namespace AlterLinePictureAproximator
                         {
                             for (int i = 0; i < 3; i++)
                             {
-                                errorStorage[x + 1, y % 2, i] += (int)(errorNew[i] * ditherValues[0]); 
-                                errorStorage[x-1, 1 - (y % 2), i] += (int)(errorNew[i] * ditherValues[1]);
-                                errorStorage[x , 1 - (y % 2), i] += (int)(errorNew[i] * ditherValues[2]);
-                                errorStorage[x+1, 1 - (y % 2), i] += (int)(errorNew[i] * ditherValues[3]);
+                                errorStorage[x + 1, y % 2, i] += (int)(errorNew[i] * ditherValues[0]);
+                                errorStorage[x - 1, 1 - (y % 2), i] += (int)(errorNew[i] * ditherValues[1]);
+                                errorStorage[x, 1 - (y % 2), i] += (int)(errorNew[i] * ditherValues[2]);
+                                errorStorage[x + 1, 1 - (y % 2), i] += (int)(errorNew[i] * ditherValues[3]);
                             }
                         }
                     }
-                                        
+
                     pixelIndex += 3;
                     totalDiff += distance;
                 }
@@ -530,7 +525,7 @@ namespace AlterLinePictureAproximator
                     dtPixels[pixelIndex] = color.B;
                     dtPixels[pixelIndex + 1] = color.G;
                     dtPixels[pixelIndex + 2] = color.R;
-          
+
                     color = cline0[bitmapDataIndexed[x, y] / COLORS, charMask[x / 4, y / 4]];
 
                     duPixels[pixelIndexU] = color.B;
@@ -539,7 +534,7 @@ namespace AlterLinePictureAproximator
                     duPixels[pixelIndexU + 3] = color.B;
                     duPixels[pixelIndexU + 4] = color.G;
                     duPixels[pixelIndexU + 5] = color.R;
-          
+
                     color = cline1[bitmapDataIndexed[x, y] % COLORS, charMask[x / 4, y / 4]];
 
                     duPixels[pixelIndexU2] = color.B;
@@ -548,11 +543,11 @@ namespace AlterLinePictureAproximator
                     duPixels[pixelIndexU2 + 3] = color.B;
                     duPixels[pixelIndexU2 + 4] = color.G;
                     duPixels[pixelIndexU2 + 5] = color.R;
-           
+
                     if (x % 4 == 0)
                     {
                         color = charMask[x / 4, y / 4] == 0 ?
-                           ((pmgMask[x / 4, y] == 1) ? Color.OrangeRed : Color.White) 
+                           ((pmgMask[x / 4, y] == 1) ? Color.OrangeRed : Color.White)
                          : ((pmgMask[x / 4, y] == 0) ? Color.Gray : Color.DarkRed);
                         for (int i = 0; i < 4; i++)
                         {
@@ -655,15 +650,15 @@ namespace AlterLinePictureAproximator
             long mindist = long.MaxValue;
             Color color = Color.Magenta;
             int atariColorIndex;
-            
-                int[] rgbWithError = { desiredColor.R + error[0], desiredColor.G + error[1], desiredColor.B + error[2] };
-                Color colorWithError = Color.FromArgb(Clamp256(rgbWithError[0]), Clamp256(rgbWithError[1]), Clamp256(rgbWithError[2]));
-                
-                for (byte i = 0; i < COLORS * COLORS; i++)
-                {
+
+            int[] rgbWithError = { desiredColor.R + error[0], desiredColor.G + error[1], desiredColor.B + error[2] };
+            Color colorWithError = Color.FromArgb(Clamp256(rgbWithError[0]), Clamp256(rgbWithError[1]), Clamp256(rgbWithError[2]));
+
+            for (byte i = 0; i < COLORS * COLORS; i++)
+            {
                 for (int inverse = 0; inverse < 2; inverse++)
-                if (colorIgnoreMatrix[i, inverse, 2] != 0) //[x,x,2] means pmg colors allowed for each pixel
-                {
+                    if (colorIgnoreMatrix[i, inverse, 2] != 0) //[x,x,2] means pmg colors allowed for each pixel
+                    {
                         long dist = Distance(colorWithError, customColors[i, inverse], distanceMethod);
                         if (dist < mindist)
                         {
@@ -671,7 +666,7 @@ namespace AlterLinePictureAproximator
                             color = customColors[i, inverse];
                         }
                     }
-                }
+            }
 
             error[0] = rgbWithError[0] - color.R;
             error[1] = rgbWithError[1] - color.G;
@@ -784,9 +779,9 @@ namespace AlterLinePictureAproximator
 
         private void ButtonMixIt_Click(object sender, EventArgs e)
         {
-         }
+        }
 
-    
+
         private void CheckBoxUseDither_CheckedChanged(object sender, EventArgs e)
         {
             Dither = checkBoxUseDither.Checked;
@@ -796,7 +791,16 @@ namespace AlterLinePictureAproximator
         {
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
-                Bitmap bmp = new Bitmap(Bitmap.FromFile(openFileDialog1.FileName));
+                Bitmap bmp;
+                try
+                {
+                    bmp = new Bitmap(Bitmap.FromFile(openFileDialog1.FileName));
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Picture {openFileDialog1.FileName} cannot be open: {ex.Message}");
+                    return;
+                }
                 if (bmp.Width == 128 && bmp.Height <= 192)
                     pictureBoxSource.Image = bmp;
                 else
@@ -850,7 +854,7 @@ namespace AlterLinePictureAproximator
                     if (Dither)
                         CreateIdealDitheredSolution(comboBoxDistance.SelectedIndex, comboBoxDither.SelectedIndex, (float)numericUpDownDitherStrength.Value / 10f);
 
-                (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex,false);
+                (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, false);
 
                 if (i == 0)
                 {
@@ -971,7 +975,7 @@ namespace AlterLinePictureAproximator
                     Array.Copy(ai.Line1, line1, line1.Length);
                     CreatePal(averageMethod, true);
                     long totalDiff = CalcDiff2(distanceMethod, false).totalDiff;
-                    
+
                     ai.Diff = totalDiff;
                     ai.Ppdiff = (int)(totalDiff / totalPixels);
                     alpaItems.Add(ai);
@@ -1160,13 +1164,21 @@ namespace AlterLinePictureAproximator
             Array.Copy(vram, 0, xex, 0x19d7, vram.Length);
             Array.Copy(colors, 0, xex, 0x1cd7, colors.Length);
             File.WriteAllBytes("output.xex", xex);*/
-
+            /*
             byte[] xex = File.ReadAllBytes("alterline3.xex");
             Array.Copy(pmdata, 0, xex, 0x020e, pmdata.Length);
             Array.Copy(charsets, 0, xex, 0x0412, charsets.Length);
             Array.Fill(xex, (byte)0, 0x0412 + charsets.Length, 32 * 24 * 8 - charsets.Length);
             Array.Copy(vram, 0, xex, 0x1c16, vram.Length);
             Array.Copy(colors, 0, xex, 0x1f16, colors.Length);
+            File.WriteAllBytes("output.xex", xex);
+            */
+            byte[] xex = File.ReadAllBytes("alterline4.xex");
+            Array.Copy(pmdata, 0, xex, 0x02b0, pmdata.Length);
+            Array.Copy(charsets, 0, xex, 0x04b4, charsets.Length);
+            Array.Fill(xex, (byte)0, 0x04b4 + charsets.Length, 32 * 24 * 8 - charsets.Length);
+            Array.Copy(vram, 0, xex, 0x1cb8, vram.Length);
+            Array.Copy(colors, 0, xex, 0x1fb8, colors.Length);
             File.WriteAllBytes("output.xex", xex);
         }
 
@@ -1315,7 +1327,7 @@ namespace AlterLinePictureAproximator
             //palette optimized picture drawing
             bit8map = new int[width, height];
             Bitmap srcBmp = (Bitmap)pictureBoxSource.Image;
-            Bitmap tgtBmp = new Bitmap(width , height);
+            Bitmap tgtBmp = new Bitmap(width, height);
             //int width = srcChannelMatrix.GetLength(0);
             //int height = srcChannelMatrix.GetLength(1);
             for (int y = 0; y < height; y++)
@@ -1363,16 +1375,33 @@ namespace AlterLinePictureAproximator
             buttonAlpaCentauriAI.Enabled = false;
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void ButtonGenerate_Click(object sender, EventArgs e)
         {
             CreatePal(comboBoxAverMethod.SelectedIndex, true);
             CreateIdealDitheredSolution(comboBoxDistance.SelectedIndex, comboBoxDither.SelectedIndex, (float)numericUpDownDitherStrength.Value / 10f);
             (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, Dither);
             Redraw(bitmapDataIndexed, charMask, pmgMask);
-            
+
         }
 
-        
+        private void ButtonImportColors_Click(object sender, EventArgs e)
+        {
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                byte[] data = File.ReadAllBytes(openFileDialog1.FileName);
+                if (data.Length != 11)
+                {
+                    MessageBox.Show("wrong file");
+                    return;
+                }
+                Array.Copy(data, 0, line0, 0, 4);
+                Array.Copy(data, 4, line1, 0, 4);
+                Array.Copy(data, 8, line0, 4, 2);
+                Array.Copy(data, 8, line1, 4, 2);
+                CreatePal(comboBoxAverMethod.SelectedIndex, false);
+                ButtonGenerate_Click(this, e);
+            }
+        }
     }
-   
+
 }
