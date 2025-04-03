@@ -62,9 +62,11 @@
             label5 = new Label();
             toolTip1 = new ToolTip(components);
             groupBox1 = new GroupBox();
+            label8 = new Label();
+            label6 = new Label();
+            comboBoxLightness = new ComboBox();
             checkBoxHepa = new CheckBox();
             numericUpDownHepaLuma = new NumericUpDown();
-            label6 = new Label();
             label2 = new Label();
             numericUpDownHepaChroma = new NumericUpDown();
             numericUpDownDitherStrength = new NumericUpDown();
@@ -184,12 +186,12 @@
             // 
             // buttonOpen
             // 
-            buttonOpen.Location = new Point(13, 344);
+            buttonOpen.Location = new Point(13, 303);
             buttonOpen.Margin = new Padding(4, 5, 4, 5);
             buttonOpen.Name = "buttonOpen";
-            buttonOpen.Size = new Size(108, 39);
+            buttonOpen.Size = new Size(171, 39);
             buttonOpen.TabIndex = 17;
-            buttonOpen.Text = "Open";
+            buttonOpen.Text = "Open Picture";
             buttonOpen.UseVisualStyleBackColor = true;
             buttonOpen.Click += ButtonOpen_Click;
             // 
@@ -199,6 +201,7 @@
             // 
             // flowLayoutPanel1
             // 
+            flowLayoutPanel1.AutoScroll = true;
             flowLayoutPanel1.Controls.Add(pictureBoxSrcData);
             flowLayoutPanel1.Controls.Add(pictureBoxSrcReduced);
             flowLayoutPanel1.Controls.Add(pictureBoxResult);
@@ -274,10 +277,10 @@
             // 
             // buttonXex
             // 
-            buttonXex.Location = new Point(439, 463);
+            buttonXex.Location = new Point(488, 697);
             buttonXex.Margin = new Padding(4, 5, 4, 5);
             buttonXex.Name = "buttonXex";
-            buttonXex.Size = new Size(132, 116);
+            buttonXex.Size = new Size(83, 79);
             buttonXex.TabIndex = 19;
             buttonXex.Text = "-> xex";
             buttonXex.UseVisualStyleBackColor = true;
@@ -288,7 +291,7 @@
             checkBoxInterlace.AutoSize = true;
             checkBoxInterlace.Checked = true;
             checkBoxInterlace.CheckState = CheckState.Checked;
-            checkBoxInterlace.Location = new Point(439, 579);
+            checkBoxInterlace.Location = new Point(470, 786);
             checkBoxInterlace.Margin = new Padding(4, 5, 4, 5);
             checkBoxInterlace.Name = "checkBoxInterlace";
             checkBoxInterlace.Size = new Size(104, 29);
@@ -333,10 +336,11 @@
             // 
             // numericUpDownPopulation
             // 
+            numericUpDownPopulation.Increment = new decimal(new int[] { 4, 0, 0, 0 });
             numericUpDownPopulation.Location = new Point(130, 771);
             numericUpDownPopulation.Margin = new Padding(4, 5, 4, 5);
-            numericUpDownPopulation.Maximum = new decimal(new int[] { 400, 0, 0, 0 });
-            numericUpDownPopulation.Minimum = new decimal(new int[] { 4, 0, 0, 0 });
+            numericUpDownPopulation.Maximum = new decimal(new int[] { 800, 0, 0, 0 });
+            numericUpDownPopulation.Minimum = new decimal(new int[] { 8, 0, 0, 0 });
             numericUpDownPopulation.Name = "numericUpDownPopulation";
             numericUpDownPopulation.Size = new Size(81, 31);
             numericUpDownPopulation.TabIndex = 25;
@@ -379,7 +383,7 @@
             listViewPopulation.Margin = new Padding(4, 5, 4, 5);
             listViewPopulation.MultiSelect = false;
             listViewPopulation.Name = "listViewPopulation";
-            listViewPopulation.Size = new Size(336, 270);
+            listViewPopulation.Size = new Size(228, 270);
             listViewPopulation.TabIndex = 29;
             listViewPopulation.UseCompatibleStateImageBehavior = false;
             listViewPopulation.View = View.Details;
@@ -439,25 +443,59 @@
             // 
             // groupBox1
             // 
+            groupBox1.Controls.Add(label8);
+            groupBox1.Controls.Add(label6);
+            groupBox1.Controls.Add(comboBoxLightness);
             groupBox1.Controls.Add(checkBoxHepa);
             groupBox1.Controls.Add(numericUpDownHepaLuma);
-            groupBox1.Controls.Add(label6);
             groupBox1.Controls.Add(label2);
             groupBox1.Controls.Add(numericUpDownHepaChroma);
             groupBox1.Location = new Point(248, 386);
             groupBox1.Name = "groupBox1";
-            groupBox1.Size = new Size(173, 222);
+            groupBox1.Size = new Size(322, 222);
             groupBox1.TabIndex = 37;
             groupBox1.TabStop = false;
             groupBox1.Text = "HEPA filter";
             toolTip1.SetToolTip(groupBox1, "Human Eye Perception Adjustment Filter");
+            // 
+            // label8
+            // 
+            label8.AutoSize = true;
+            label8.Location = new Point(7, 66);
+            label8.Margin = new Padding(4, 0, 4, 0);
+            label8.Name = "label8";
+            label8.Size = new Size(238, 25);
+            label8.TabIndex = 45;
+            label8.Text = "Brightness calculation mode:";
+            // 
+            // label6
+            // 
+            label6.AutoSize = true;
+            label6.Location = new Point(7, 137);
+            label6.Margin = new Padding(4, 0, 4, 0);
+            label6.Name = "label6";
+            label6.Size = new Size(171, 25);
+            label6.TabIndex = 44;
+            label6.Text = "Brightness max step";
+            // 
+            // comboBoxLightness
+            // 
+            comboBoxLightness.DropDownStyle = ComboBoxStyle.DropDownList;
+            comboBoxLightness.FormattingEnabled = true;
+            comboBoxLightness.Items.AddRange(new object[] { "Atari Lightness ($0x) max step", "Luminance (0..255) max step", "L* perceived lightness (0..100) max step" });
+            comboBoxLightness.Location = new Point(7, 96);
+            comboBoxLightness.Margin = new Padding(4, 5, 4, 5);
+            comboBoxLightness.Name = "comboBoxLightness";
+            comboBoxLightness.Size = new Size(308, 33);
+            comboBoxLightness.TabIndex = 43;
+            comboBoxLightness.SelectedIndexChanged += ComboBoxLightness_SelectedIndexChanged;
             // 
             // checkBoxHepa
             // 
             checkBoxHepa.AutoSize = true;
             checkBoxHepa.Checked = true;
             checkBoxHepa.CheckState = CheckState.Checked;
-            checkBoxHepa.Location = new Point(13, 46);
+            checkBoxHepa.Location = new Point(14, 32);
             checkBoxHepa.Margin = new Padding(4, 5, 4, 5);
             checkBoxHepa.Name = "checkBoxHepa";
             checkBoxHepa.Size = new Size(138, 29);
@@ -467,7 +505,7 @@
             // 
             // numericUpDownHepaLuma
             // 
-            numericUpDownHepaLuma.Location = new Point(14, 117);
+            numericUpDownHepaLuma.Location = new Point(234, 135);
             numericUpDownHepaLuma.Margin = new Padding(4, 5, 4, 5);
             numericUpDownHepaLuma.Maximum = new decimal(new int[] { 14, 0, 0, 0 });
             numericUpDownHepaLuma.Name = "numericUpDownHepaLuma";
@@ -475,29 +513,19 @@
             numericUpDownHepaLuma.TabIndex = 41;
             numericUpDownHepaLuma.Value = new decimal(new int[] { 2, 0, 0, 0 });
             // 
-            // label6
-            // 
-            label6.AutoSize = true;
-            label6.Location = new Point(8, 87);
-            label6.Margin = new Padding(4, 0, 4, 0);
-            label6.Name = "label6";
-            label6.Size = new Size(132, 25);
-            label6.TabIndex = 40;
-            label6.Text = "Luma max step";
-            // 
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new Point(7, 153);
+            label2.Location = new Point(7, 185);
             label2.Margin = new Padding(4, 0, 4, 0);
             label2.Name = "label2";
-            label2.Size = new Size(152, 25);
+            label2.Size = new Size(175, 25);
             label2.TabIndex = 39;
-            label2.Text = "Chroma max step";
+            label2.Text = "Color ($x0) max step";
             // 
             // numericUpDownHepaChroma
             // 
-            numericUpDownHepaChroma.Location = new Point(14, 183);
+            numericUpDownHepaChroma.Location = new Point(234, 183);
             numericUpDownHepaChroma.Margin = new Padding(4, 5, 4, 5);
             numericUpDownHepaChroma.Maximum = new decimal(new int[] { 15, 0, 0, 0 });
             numericUpDownHepaChroma.Name = "numericUpDownHepaChroma";
@@ -637,12 +665,13 @@
             // 
             // buttonImportColors
             // 
-            buttonImportColors.Location = new Point(192, 395);
+            buttonImportColors.Font = new Font("Segoe MDL2 Assets", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            buttonImportColors.Location = new Point(192, 394);
             buttonImportColors.Margin = new Padding(4, 5, 4, 5);
             buttonImportColors.Name = "buttonImportColors";
-            buttonImportColors.Size = new Size(48, 153);
+            buttonImportColors.Size = new Size(49, 121);
             buttonImportColors.TabIndex = 45;
-            buttonImportColors.Text = "Import";
+            buttonImportColors.Text = "";
             buttonImportColors.UseVisualStyleBackColor = true;
             buttonImportColors.Click += ButtonImportColors_Click;
             // 
@@ -736,7 +765,6 @@
         private Button buttonGenerate;
         private GroupBox groupBox1;
         private NumericUpDown numericUpDownHepaLuma;
-        private Label label6;
         private Label label2;
         private NumericUpDown numericUpDownHepaChroma;
         private CheckBox checkBoxHepa;
@@ -755,5 +783,8 @@
         private Label label7;
         private Label labelSolutions;
         private Button buttonImportColors;
+        private ComboBox comboBoxLightness;
+        private Label label8;
+        private Label label6;
     }
 }

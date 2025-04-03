@@ -96,6 +96,13 @@ namespace AlterLinePictureAproximator
             public int Ppdiff { get; set; }
             public byte[] Line0 { get; set; }
             public byte[] Line1 { get; set; }
+            public int Zero { get; set; }
+
+            // Shallow copy
+            public AlpaItem ShallowCopy()
+            {
+                return (AlpaItem)this.MemberwiseClone();
+            }
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -108,6 +115,8 @@ namespace AlterLinePictureAproximator
             comboBoxDistance.SelectedIndex = 0;
             comboBoxDither.SelectedIndex = 0;
             comboBoxAverMethod.SelectedIndex = 0;
+            comboBoxLightness.SelectedIndex = 0;
+            comboBoxLightness.Tag = 0;  //previous value
             PictureToChannel(comboBoxAverMethod.SelectedIndex);
             ReduceColors();
             pictureBoxResultLines.ZoomFactor = PictureBoxWithInterpolationMode.PictureBoxZoomFactor.x1;
@@ -192,11 +201,43 @@ namespace AlterLinePictureAproximator
             return Color.Yellow;
         }
 
+        private double RgbToLin(double colorChannel)
+        {
+            // Send this function a decimal sRGB gamma encoded color value
+            // between 0.0 and 1.0, and it returns a linearized value.
+
+            if (colorChannel <= 0.04045)
+            {
+                return colorChannel / 12.92;
+            }
+            else
+            {
+                return Math.Pow(((colorChannel + 0.055) / 1.055), 2.4);
+            }
+        }
+        private double GetLStar(int atariColor)
+        {
+            double vR = atariPalRgb[atariColor * 3] / 255;
+            double vG = atariPalRgb[atariColor * 3 + 1] / 255;
+            double vB = atariPalRgb[atariColor * 3 + 2] / 255;
+            double y = (0.2126 * RgbToLin(vR) + 0.7152 * RgbToLin(vG) + 0.0722 * RgbToLin(vB));
+
+            if (y <= (216 / 24389))
+            {       // The CIE standard states 0.008856 but 216/24389 is the intent for 0.008856451679036
+                return y * (24389 / 27);  // The CIE standard states 903.3, but 24389/27 is the intent, making 903.296296296296296
+            }
+            else
+            {
+                return Math.Pow(y, (1 / 3)) * 116 - 16;
+            }
+        }
+
         private void CreatePal(int method, bool noDraw = false)
         {
             //int[,] hepaMatrix = new int[COLORS * COLORS, 2];   //color-ignore matrix based on the HEPA filtering
             int hepaLumaFilter = checkBoxHepa.Checked ? (int)numericUpDownHepaLuma.Value : 14;
             int hepaChromaFilter = checkBoxHepa.Checked ? (int)numericUpDownHepaChroma.Value : 15;
+            int brightnessMethod = comboBoxLightness.SelectedIndex;
             customColors = new Color[COLORS * COLORS, 2];
             for (int z = 0; z < 2; z++)
             {
@@ -211,7 +252,30 @@ namespace AlterLinePictureAproximator
                     {
                         customColors[index, z] = AverageColor(l0[a], l1[b], method);
                         int loopingColorDifference = Math.Min(Math.Abs((l0[a] / 16) - (l1[b] / 16)), 16 - (Math.Abs((l0[a] / 16) - (l1[b] / 16))));
-                        int hepaItem = (Math.Abs((l0[a] % 16) - (l1[b] % 16)) <= hepaLumaFilter) && (loopingColorDifference <= hepaChromaFilter) ? 1 : 0;
+                        int hepaItem;
+
+                        //https://stackoverflow.com/questions/596216/formula-to-determine-perceived-brightness-of-rgb-color
+                        switch (brightnessMethod)
+                        {
+                            case 0:
+                                hepaItem = (Math.Abs((l0[a] % 16) - (l1[b] % 16)) <= hepaLumaFilter) && (loopingColorDifference <= hepaChromaFilter) ? 1 : 0;
+                                break;
+                            case 1: //(0.2126*R + 0.7152*G + 0.0722*B)
+                                double lum0 = atariPalRgb[l0[a] * 3] * 0.2126 +
+                                              atariPalRgb[l0[a] * 3 + 1] * 0.7152 +
+                                              atariPalRgb[l0[a] * 3 + 2] * 0.0722;
+                                double lum1 = atariPalRgb[l1[b] * 3] * 0.2126 +
+                                              atariPalRgb[l1[b] * 3 + 1] * 0.7152 +
+                                              atariPalRgb[l1[b] * 3 + 2] * 0.0722;
+                                hepaItem = (Math.Abs((int)(lum0 - lum1)) <= hepaLumaFilter) && (loopingColorDifference <= hepaChromaFilter) ? 1 : 0;
+                                break;
+                            case 2:
+                                hepaItem = (Math.Abs((int)(GetLStar(l0[a]) - GetLStar(l1[b]))) <= hepaLumaFilter) && (loopingColorDifference <= hepaChromaFilter) ? 1 : 0;
+                                break;
+                            default:
+                                hepaItem = 0;
+                                break;
+                        }
                         colorIgnoreMatrix[index, z, 0] = hepaItem & IGNORE_PMG_MATRIX5[index];
                         colorIgnoreMatrix[index, z, 1] = hepaItem & IGNORE_BG_MATRIX5[index];
                         colorIgnoreMatrix[index, z, 2] = hepaItem;
@@ -836,44 +900,63 @@ namespace AlterLinePictureAproximator
         private void CentauriInit(int population)
         {
             alpaItems.Clear();
+            AlpaItem zeroItem = new();
             Random rand = new Random();
 
             for (int i = 0; i < population; i++)
             {
                 if (i > 0) //keep 0.iteration equal to colors currently set
                 {
-                    for (int j = 0; j < 4; j++)
+                    for (int j = 0; j <= COLORS; j++)
                     {
+                        if (LOCKED_COLORS[j] == 1) { continue; }
                         line0[j] = (byte)(((byte)rand.Next(255)) & 0xFE);
-                        line1[j] = (byte)(((byte)rand.Next(255)) & 0xFE);
+                        if (JOINED_COLORS[j] == 1)
+                            line1[j] = line0[j]; //common color
+                        else
+                            line1[j] = (byte)(((byte)rand.Next(255)) & 0xFE);
                     }
                 }
-                line1[1] = line0[1]; //common color
                 CreatePal(comboBoxAverMethod.SelectedIndex, true);
-                if (i == 0)
-                    if (Dither)
-                        CreateIdealDitheredSolution(comboBoxDistance.SelectedIndex, comboBoxDither.SelectedIndex, (float)numericUpDownDitherStrength.Value / 10f);
 
-                (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, false);
+                long totalDiff;
+                int[,] bitmapDataIndexed;
+                int[,] charMask;
+                int[,] pmgMask;
+                //if (i == 0)
+                // if (Dither)
+                //   CreateIdealDitheredSolution(comboBoxDistance.SelectedIndex, comboBoxDither.SelectedIndex, (float)numericUpDownDitherStrength.Value / 10f);
 
-                if (i == 0)
-                {
-                    if (Dither)
-                        (totalDiff, bitmapDataIndexed, charMask, pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, Dither);
-                    Redraw(bitmapDataIndexed, charMask, pmgMask);
-                }
+                (totalDiff, bitmapDataIndexed, charMask, pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, false);
+
+                //if (i == 0)
+                //{
+                // if (Dither)
+                //    (totalDiff, bitmapDataIndexed, charMask, pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, Dither);
+                //Redraw(bitmapDataIndexed, charMask, pmgMask);
+                //}
                 AlpaItem ai = new();
                 ai.Diff = totalDiff;
                 ai.Ppdiff = (int)(totalDiff / totalPixels);
                 ai.Line0 = (byte[])line0.Clone();
                 ai.Line1 = (byte[])line1.Clone();
-                alpaItems.Add(ai);
+                if (i == 0)
+                {
+                    ai.Zero = 1;    //index zero (manual/imported)
+                    zeroItem = ai.ShallowCopy();
+                }
+                else
+                {
+                    alpaItems.Add(ai);
+                }
             }
             List<AlpaItem> sorted = alpaItems.OrderBy(d => d.Diff).ToList();
-            if (alpaItems.Count > population / 4)
-                sorted.RemoveRange(population / 4 - 1, alpaItems.Count - (population / 4) - 1);
+            sorted.Insert(0, zeroItem);
+            if (sorted.Count > population / 4)
+                sorted.RemoveRange(population / 4 - 1, sorted.Count - ((population / 4) - 1));
             alpaItems = sorted;
             ListPopulation(); // fill up the listview
+            listViewPopulation.Items[0].Selected = true;
         }
 
         private void Centauri(int generations, int population)
@@ -895,7 +978,7 @@ namespace AlterLinePictureAproximator
                     if (LOCKED_COLORS[j] == 1) { continue; }
                     line0[j] = (byte)(((byte)rand.Next(255)) & 0xFE);
                     if (JOINED_COLORS[j] == 1)
-                        line1[1] = line0[1]; //common color
+                        line1[j] = line0[j]; //common color
                     else
                         line1[j] = (byte)(((byte)rand.Next(255)) & 0xFE);
                 }
@@ -953,7 +1036,9 @@ namespace AlterLinePictureAproximator
             listViewPopulation.Items.Clear();
             for (int i = 0; i < alpaItems.Count; i++)
             {
-                listViewPopulation.Items.Add($"{i}: {((int)alpaItems[i].Ppdiff).ToString()}");
+                var lvi = listViewPopulation.Items.Add($"{i}: {((int)alpaItems[i].Ppdiff).ToString()}");
+                if (alpaItems[i].Zero == 1)
+                    lvi.Font = new Font(lvi.Font, FontStyle.Bold);
             }
         }
 
@@ -983,7 +1068,7 @@ namespace AlterLinePictureAproximator
             List<AlpaItem> sorted = alpaItems.OrderBy(d => d.Diff).ToList();
             int amount = alpaItems.Count;
             if (amount > population / 4)
-                sorted.RemoveRange(population / 4 - 1, amount - (population / 4) - 1);
+                sorted.RemoveRange(population / 4 - 1, amount - ((population / 4) - 1));
             sorted = sorted.DistinctBy(d => d.Diff).ToList();
             alpaItems = sorted;
 
@@ -1194,7 +1279,7 @@ namespace AlterLinePictureAproximator
 
         private void ButtonAlpaCentauriInit_Click(object sender, EventArgs e)
         {
-            CentauriInit((int)numericUpDownGeneration.Value);
+            CentauriInit((int)numericUpDownPopulation.Value);
             buttonAlpaCentauriAI.Enabled = true;
         }
 
@@ -1399,8 +1484,47 @@ namespace AlterLinePictureAproximator
                 Array.Copy(data, 8, line0, 4, 2);
                 Array.Copy(data, 8, line1, 4, 2);
                 CreatePal(comboBoxAverMethod.SelectedIndex, false);
-                ButtonGenerate_Click(this, e);
+                ButtonAlpaCentauriInit_Click(this, null);
+                //ButtonGenerate_Click(this, e);
             }
+        }
+
+        private void ComboBoxLightness_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if ((comboBoxLightness.Tag == null) || (comboBoxLightness.SelectedIndex == (int)comboBoxLightness.Tag))
+                return;
+
+            int prevIndex = (int)comboBoxLightness.Tag;
+            decimal brMax = numericUpDownHepaLuma.Maximum;
+            decimal brVal = numericUpDownHepaLuma.Value;
+            switch (comboBoxLightness.SelectedIndex)
+            {
+                case 0:
+                    brMax = 15;
+                    if (prevIndex == 1)
+                        brVal /= 16;
+                    else
+                        brVal /= 100/16;
+                    break;
+                case 1:
+                    brMax = 255;
+                    if (prevIndex == 0)
+                        brVal *= 16;
+                    else
+                        brVal = (decimal)((int)brVal * 2.55f);
+                    break;
+                case 2:
+                    brMax = 100;
+                    if (prevIndex == 0)
+                        brVal *= 100 / 16;
+                    else
+                        brVal = (decimal)((int)brVal / 2.55f);
+                    break;
+
+            }
+            numericUpDownHepaLuma.Maximum = brMax;
+            numericUpDownHepaLuma.Value = Math.Min(brVal, brMax);
+            comboBoxLightness.Tag = comboBoxLightness.SelectedIndex;
         }
     }
 
