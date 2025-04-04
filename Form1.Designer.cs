@@ -79,7 +79,6 @@
             splitContainer1 = new SplitContainer();
             panel1 = new Panel();
             buttonImportColors = new Button();
-            labelSolutions = new Label();
             label7 = new Label();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxPalette).BeginInit();
@@ -482,7 +481,7 @@
             // 
             comboBoxLightness.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxLightness.FormattingEnabled = true;
-            comboBoxLightness.Items.AddRange(new object[] { "Atari Lightness ($0x) max step", "Luminance (0..255) max step", "L* perceived lightness (0..100) max step" });
+            comboBoxLightness.Items.AddRange(new object[] { "Atari Lightness ($0x) ", "Luminance (0..255) ", "L* perceived lightness (0..100)" });
             comboBoxLightness.Location = new Point(7, 96);
             comboBoxLightness.Margin = new Padding(4, 5, 4, 5);
             comboBoxLightness.Name = "comboBoxLightness";
@@ -626,7 +625,6 @@
             // panel1
             // 
             panel1.Controls.Add(buttonImportColors);
-            panel1.Controls.Add(labelSolutions);
             panel1.Controls.Add(label7);
             panel1.Controls.Add(numericUpDownDitherStrength);
             panel1.Controls.Add(pictureBoxSource);
@@ -674,16 +672,6 @@
             buttonImportColors.Text = "";
             buttonImportColors.UseVisualStyleBackColor = true;
             buttonImportColors.Click += ButtonImportColors_Click;
-            // 
-            // labelSolutions
-            // 
-            labelSolutions.AutoSize = true;
-            labelSolutions.Location = new Point(204, 605);
-            labelSolutions.Margin = new Padding(4, 0, 4, 0);
-            labelSolutions.Name = "labelSolutions";
-            labelSolutions.Size = new Size(299, 25);
-            labelSolutions.TabIndex = 44;
-            labelSolutions.Text = "solutions: 11111, tries ratio: 2.45645";
             // 
             // label7
             // 
@@ -781,7 +769,6 @@
         private PictureBoxWithInterpolationMode pictureBoxSrcData;
         private NumericUpDown numericUpDownDitherStrength;
         private Label label7;
-        private Label labelSolutions;
         private Button buttonImportColors;
         private ComboBox comboBoxLightness;
         private Label label8;

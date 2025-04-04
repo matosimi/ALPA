@@ -23,8 +23,7 @@ namespace AlterLinePictureAproximator
     using System.Text.Json.Serialization.Metadata;
 
     /*todo: dithering only in results
-     *todo: hepa luma as difference between RGB vals
-     *todo: proper initialization (do not delete current color setup)
+
      */
     public partial class Form1 : Form
     {
@@ -217,18 +216,18 @@ namespace AlterLinePictureAproximator
         }
         private double GetLStar(int atariColor)
         {
-            double vR = atariPalRgb[atariColor * 3] / 255;
-            double vG = atariPalRgb[atariColor * 3 + 1] / 255;
-            double vB = atariPalRgb[atariColor * 3 + 2] / 255;
+            double vR = atariPalRgb[atariColor * 3] / 255f;
+            double vG = atariPalRgb[atariColor * 3 + 1] / 255f;
+            double vB = atariPalRgb[atariColor * 3 + 2] / 255f;
             double y = (0.2126 * RgbToLin(vR) + 0.7152 * RgbToLin(vG) + 0.0722 * RgbToLin(vB));
 
-            if (y <= (216 / 24389))
+            if (y <= (216 / 24389f))
             {       // The CIE standard states 0.008856 but 216/24389 is the intent for 0.008856451679036
-                return y * (24389 / 27);  // The CIE standard states 903.3, but 24389/27 is the intent, making 903.296296296296296
+                return y * (24389 / 27f);  // The CIE standard states 903.3, but 24389/27 is the intent, making 903.296296296296296
             }
             else
             {
-                return Math.Pow(y, (1 / 3)) * 116 - 16;
+                return Math.Pow(y, (1 / 3f)) * 116 - 16;
             }
         }
 
