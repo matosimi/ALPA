@@ -109,6 +109,7 @@ namespace AlterLinePictureAproximator
             /*Vector4 rgb = new Vector4(30/255f, 60/255f, 90/255f, 0);
             Vector4 lab = Conversion.RGBToLab(rgb);
             Vector4 rgb2 = Conversion.LabToRGB(lab);*/
+            this.Text = "AlterLinePictureApproximator (ALPA) v1.0 by MatoSimi 4.4.2025";
             LoadPalette();
             CreatePal(comboBoxAverMethod.SelectedIndex);
             comboBoxDistance.SelectedIndex = 0;
@@ -119,6 +120,8 @@ namespace AlterLinePictureAproximator
             PictureToChannel(comboBoxAverMethod.SelectedIndex);
             ReduceColors();
             pictureBoxResultLines.ZoomFactor = PictureBoxWithInterpolationMode.PictureBoxZoomFactor.x1;
+            checkBoxAutoGenerate.Checked = true;
+            ButtonGenerate_Click(this, null);
         }
 
 
@@ -234,7 +237,7 @@ namespace AlterLinePictureAproximator
         private void CreatePal(int method, bool noDraw = false)
         {
             //int[,] hepaMatrix = new int[COLORS * COLORS, 2];   //color-ignore matrix based on the HEPA filtering
-            int hepaLumaFilter = checkBoxHepa.Checked ? (int)numericUpDownHepaLuma.Value : 14;
+            int hepaLumaFilter = checkBoxHepa.Checked ? (int)numericUpDownHepaLuma.Value : (int)numericUpDownHepaLuma.Maximum;
             int hepaChromaFilter = checkBoxHepa.Checked ? (int)numericUpDownHepaChroma.Value : 15;
             int brightnessMethod = comboBoxLightness.SelectedIndex;
             customColors = new Color[COLORS * COLORS, 2];
@@ -848,6 +851,8 @@ namespace AlterLinePictureAproximator
         private void CheckBoxUseDither_CheckedChanged(object sender, EventArgs e)
         {
             Dither = checkBoxUseDither.Checked;
+            if (checkBoxAutoGenerate.Checked)
+                ButtonGenerate_Click(this, null);
         }
 
         private void ButtonOpen_Click(object sender, EventArgs e)
@@ -1257,7 +1262,7 @@ namespace AlterLinePictureAproximator
             Array.Copy(colors, 0, xex, 0x1f16, colors.Length);
             File.WriteAllBytes("output.xex", xex);
             */
-            byte[] xex = File.ReadAllBytes("alterline4.xex");
+            byte[] xex = File.ReadAllBytes(@"atari\alterline4.xex");
             Array.Copy(pmdata, 0, xex, 0x02b0, pmdata.Length);
             Array.Copy(charsets, 0, xex, 0x04b4, charsets.Length);
             Array.Fill(xex, (byte)0, 0x04b4 + charsets.Length, 32 * 24 * 8 - charsets.Length);
@@ -1452,11 +1457,15 @@ namespace AlterLinePictureAproximator
         {
             PictureToChannel(comboBoxAverMethod.SelectedIndex);
             CreatePal(comboBoxAverMethod.SelectedIndex);
+            if (checkBoxAutoGenerate.Checked)
+                ButtonGenerate_Click(this, null);
         }
 
         private void ComboBoxDistance_SelectedIndexChanged(object sender, EventArgs e)
         {
             buttonAlpaCentauriAI.Enabled = false;
+            if (checkBoxAutoGenerate.Checked)
+                ButtonGenerate_Click(this, null);
         }
 
         private void ButtonGenerate_Click(object sender, EventArgs e)
@@ -1503,7 +1512,7 @@ namespace AlterLinePictureAproximator
                     if (prevIndex == 1)
                         brVal /= 16;
                     else
-                        brVal /= 100/16;
+                        brVal /= 100 / 16;
                     break;
                 case 1:
                     brMax = 255;
@@ -1524,6 +1533,18 @@ namespace AlterLinePictureAproximator
             numericUpDownHepaLuma.Maximum = brMax;
             numericUpDownHepaLuma.Value = Math.Min(brVal, brMax);
             comboBoxLightness.Tag = comboBoxLightness.SelectedIndex;
+        }
+
+        private void ComboBoxDither_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (checkBoxAutoGenerate.Checked)
+                ButtonGenerate_Click(this, null);
+        }
+
+        private void NumericUpDownDitherStrength_ValueChanged(object sender, EventArgs e)
+        {
+            if (checkBoxAutoGenerate.Checked)
+                ButtonGenerate_Click(this, null);
         }
     }
 

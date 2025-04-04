@@ -78,6 +78,7 @@
             labelOutputSize = new Label();
             splitContainer1 = new SplitContainer();
             panel1 = new Panel();
+            checkBoxAutoGenerate = new CheckBox();
             buttonImportColors = new Button();
             label7 = new Label();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).BeginInit();
@@ -147,6 +148,7 @@
             comboBoxDither.Name = "comboBoxDither";
             comboBoxDither.Size = new Size(154, 33);
             comboBoxDither.TabIndex = 13;
+            comboBoxDither.SelectedIndexChanged += ComboBoxDither_SelectedIndexChanged;
             // 
             // checkBoxUseDither
             // 
@@ -415,6 +417,7 @@
             checkBoxColorReduction.Size = new Size(161, 29);
             checkBoxColorReduction.TabIndex = 31;
             checkBoxColorReduction.Text = "Color reduction";
+            toolTip1.SetToolTip(checkBoxColorReduction, "Use 256colors instead of 24bit");
             checkBoxColorReduction.UseVisualStyleBackColor = true;
             checkBoxColorReduction.CheckedChanged += CheckBoxColorReduction_CheckedChanged;
             // 
@@ -455,7 +458,7 @@
             groupBox1.TabIndex = 37;
             groupBox1.TabStop = false;
             groupBox1.Text = "HEPA filter";
-            toolTip1.SetToolTip(groupBox1, "Human Eye Perception Adjustment Filter");
+            toolTip1.SetToolTip(groupBox1, "Human Eye Perceptual Adjustment Filter");
             // 
             // label8
             // 
@@ -542,6 +545,7 @@
             numericUpDownDitherStrength.TabIndex = 42;
             toolTip1.SetToolTip(numericUpDownDitherStrength, "10=max,1=min");
             numericUpDownDitherStrength.Value = new decimal(new int[] { 10, 0, 0, 0 });
+            numericUpDownDitherStrength.ValueChanged += NumericUpDownDitherStrength_ValueChanged;
             // 
             // progressBarAI
             // 
@@ -624,6 +628,7 @@
             // 
             // panel1
             // 
+            panel1.Controls.Add(checkBoxAutoGenerate);
             panel1.Controls.Add(buttonImportColors);
             panel1.Controls.Add(label7);
             panel1.Controls.Add(numericUpDownDitherStrength);
@@ -661,6 +666,18 @@
             panel1.Size = new Size(583, 954);
             panel1.TabIndex = 0;
             // 
+            // checkBoxAutoGenerate
+            // 
+            checkBoxAutoGenerate.AutoSize = true;
+            checkBoxAutoGenerate.BackColor = SystemColors.ButtonHighlight;
+            checkBoxAutoGenerate.Location = new Point(482, 224);
+            checkBoxAutoGenerate.Margin = new Padding(4, 5, 4, 5);
+            checkBoxAutoGenerate.Name = "checkBoxAutoGenerate";
+            checkBoxAutoGenerate.Size = new Size(77, 29);
+            checkBoxAutoGenerate.TabIndex = 46;
+            checkBoxAutoGenerate.Text = "Auto";
+            checkBoxAutoGenerate.UseVisualStyleBackColor = false;
+            // 
             // buttonImportColors
             // 
             buttonImportColors.Font = new Font("Segoe MDL2 Assets", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
@@ -670,6 +687,7 @@
             buttonImportColors.Size = new Size(49, 121);
             buttonImportColors.TabIndex = 45;
             buttonImportColors.Text = "";
+            toolTip1.SetToolTip(buttonImportColors, "Import colors (color2.dat)");
             buttonImportColors.UseVisualStyleBackColor = true;
             buttonImportColors.Click += ButtonImportColors_Click;
             // 
@@ -692,7 +710,7 @@
             Icon = (Icon)resources.GetObject("$this.Icon");
             Margin = new Padding(4, 5, 4, 5);
             Name = "Form1";
-            Text = "AlterLinePictureApproximator (ALPA) v0.9 by MatoSimi";
+            Text = "appText";
             Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxPalette).EndInit();
@@ -773,5 +791,6 @@
         private ComboBox comboBoxLightness;
         private Label label8;
         private Label label6;
+        private CheckBox checkBoxAutoGenerate;
     }
 }
