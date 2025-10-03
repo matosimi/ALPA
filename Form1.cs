@@ -404,6 +404,7 @@ namespace AlterLinePictureAproximator
         //new calcdiff for 8bit palette-reduced picture
         private (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) CalcDiff2(int distanceMethod, bool doDither)
         {
+            var distanceFn = SelectDistance(distanceMethod);
             int width = srcChannelMatrix.GetLength(0);
             int height = srcChannelMatrix.GetLength(1);
 
@@ -438,15 +439,15 @@ namespace AlterLinePictureAproximator
                                 {
                                     int pixelIndex = (x * 4 + cx + (y * 4 + cy) * 128) * 3;
                                     Color desiredColor = Color.FromArgb(bitmapPixelsDithered[pixelIndex + 2], bitmapPixelsDithered[pixelIndex + 1], bitmapPixelsDithered[pixelIndex]);
-                                    (distance, index) = FindCustomClosest2(desiredColor, distanceMethod, z, 0);
+                                    (distance, index) = FindCustomClosest2(desiredColor, distanceFn, z, 0);
                                 }
                                 else if (UseReducedSource)
                                 {
-                                    (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceMethod, z, 0);
+                                    (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceFn, z, 0);
                                 }
                                 else
                                 {
-                                    (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceMethod, z, 0);
+                                    (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceFn, z, 0);
                                 }
                                 sum0 += distance * distance;
                                 bitmapCharDataIndexed[cx, cy, z, 0] = index;
@@ -461,15 +462,15 @@ namespace AlterLinePictureAproximator
                                 {
                                     int pixelIndex = (x * 4 + cx + (y * 4 + cy) * 128) * 3;
                                     Color desiredColor = Color.FromArgb(bitmapPixelsDithered[pixelIndex + 2], bitmapPixelsDithered[pixelIndex + 1], bitmapPixelsDithered[pixelIndex]);
-                                    (distance, index) = FindCustomClosest2(desiredColor, distanceMethod, z, 1);
+                                    (distance, index) = FindCustomClosest2(desiredColor, distanceFn, z, 1);
                                 }
                                 else if (UseReducedSource)
                                 {
-                                    (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceMethod, z, 1);
+                                    (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceFn, z, 1);
                                 }
                                 else
                                 {
-                                    (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceMethod, z, 1);
+                                    (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceFn, z, 1);
                                 }
                                 sum1 += distance * distance;
                                 bitmapCharDataIndexed[cx, cy, z, 1] = index;
@@ -523,6 +524,7 @@ namespace AlterLinePictureAproximator
 
             Bitmap d = new Bitmap(width, height, PixelFormat.Format24bppRgb);
             int distanceMethod = comboBoxDistance.SelectedIndex;
+            var distanceFn = SelectDistance(distanceMethod);
             BitmapData dd = d.LockBits(new Rectangle(0, 0, d.Width, d.Height), ImageLockMode.WriteOnly, d.PixelFormat);
             IntPtr pointer = dd.Scan0;
             int size = Math.Abs(dd.Stride) * dd.Height;
@@ -543,7 +545,7 @@ namespace AlterLinePictureAproximator
                         errorStorage[x, y % 2, i] = 0;
                     }
 
-                    var (distance, color, errorNew) = FindCustomClosest3(palette8[bit8map[x, y]], error, distanceMethod);
+                    var (distance, color, errorNew) = FindCustomClosest3(palette8[bit8map[x, y]], error, distanceFn);
                     bitmapPixelsDithered[pixelIndex] = color.B;
                     bitmapPixelsDithered[pixelIndex + 1] = color.G;
                     bitmapPixelsDithered[pixelIndex + 2] = color.R;
@@ -680,41 +682,31 @@ namespace AlterLinePictureAproximator
         }
 
 
-        private long Distance(Color col1, Color col2, int distanceMethod)
+
+        // Preselect distance function to avoid switching in hot loops
+        private Func<Color, Color, long> SelectDistance(int distanceMethod)
         {
-            long dist = long.MaxValue;
-            switch (distanceMethod)
+            return distanceMethod switch
             {
-                case 0:
-                    dist = Difference(col1, col2);
-                    break;
-                case 1:
-                    dist = RGBEuclidianDistance(col1, col2);
-                    break;
-                case 2:
-                    dist = RGByuvDistance(col1, col2);
-                    break;
-                case 3:
-                    dist = YUVEuclidianDistance(col1, col2);
-                    break;
-                case 4:
-                    dist = WeightedRGBDistance(col1, col2);
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-            return dist;
+                0 => Difference,
+                1 => RGBEuclidianDistance,
+                2 => RGByuvDistance,
+                3 => YUVEuclidianDistance,
+                4 => WeightedRGBDistance,
+                _ => throw new NotImplementedException()
+            };
         }
 
+        
         /// <summary>
         /// Finds closest color towards picture reduced to 256 colors
         /// </summary>
         /// <param name="p8index"></param>
-        /// <param name="distanceMethod"></param>
+        /// <param name="distanceFn"></param>
         /// <param name="inverse"></param>
         /// <param name="pmg"></param>
         /// <returns></returns>
-        private (long distance, int index) FindCustomClosest2Reduced(int p8index, int distanceMethod, int inverse, int pmg)
+        private (long distance, int index) FindCustomClosest2Reduced(int p8index, Func<Color, Color, long> distanceFn, int inverse, int pmg)
         {
             long mindist = long.MaxValue;
             int index = 0;
@@ -726,7 +718,7 @@ namespace AlterLinePictureAproximator
                 {
                     if (colorIgnoreMatrix[i, inverse, pmg] != 0)
                     {
-                        long dist = Distance(palette8[p8index], customColors[i, inverse], distanceMethod);
+                        long dist = distanceFn(palette8[p8index], customColors[i, inverse]);
                         if (dist < mindist)
                         {
                             mindist = dist;
@@ -742,18 +734,18 @@ namespace AlterLinePictureAproximator
                 return (distance: customP8MatchDist[p8index, inverse, pmg], index: indexStored);
         }
 
+        
         /// <summary>
         /// Finds closest color, incl.pmg+bg for ideal dithered image (from which we do atari dithered image with fat pmg pixels)
         /// </summary>
         /// <param name="desiredColor"></param>
         /// <param name="error"></param>
-        /// <param name="distanceMethod"></param>
+        /// <param name="distanceFn"></param>
         /// <returns></returns>
-        private (long distance, Color color, int[] error) FindCustomClosest3(Color desiredColor, int[] error, int distanceMethod)
+        private (long distance, Color color, int[] error) FindCustomClosest3(Color desiredColor, int[] error, Func<Color, Color, long> distanceFn)
         {
             long mindist = long.MaxValue;
             Color color = Color.Magenta;
-            int atariColorIndex;
 
             int[] rgbWithError = { desiredColor.R + error[0], desiredColor.G + error[1], desiredColor.B + error[2] };
             Color colorWithError = Color.FromArgb(Clamp256(rgbWithError[0]), Clamp256(rgbWithError[1]), Clamp256(rgbWithError[2]));
@@ -763,7 +755,7 @@ namespace AlterLinePictureAproximator
                 for (int inverse = 0; inverse < 2; inverse++)
                     if (colorIgnoreMatrix[i, inverse, 2] != 0) //[x,x,2] means pmg colors allowed for each pixel
                     {
-                        long dist = Distance(colorWithError, customColors[i, inverse], distanceMethod);
+                        long dist = distanceFn(colorWithError, customColors[i, inverse]);
                         if (dist < mindist)
                         {
                             mindist = dist;
@@ -787,7 +779,7 @@ namespace AlterLinePictureAproximator
         /// <param name="inverse"></param>
         /// <param name="pmg"></param>
         /// <returns></returns>
-        private (long distance, int index) FindCustomClosest2(Color color, int distanceMethod, int inverse, int pmg)
+        private (long distance, int index) FindCustomClosest2(Color color, Func<Color, Color, long> distanceFn, int inverse, int pmg)
         {
             long mindist = long.MaxValue;
             int index = customP24Match[color.R, color.G, color.B, inverse, pmg] - 1;
@@ -795,10 +787,9 @@ namespace AlterLinePictureAproximator
             {
                 for (byte i = 0; i < COLORS * COLORS; i++)
                 {
-                    long dist;
                     if (colorIgnoreMatrix[i, inverse, pmg] != 0)
                     {
-                        dist = Distance(color, customColors[i, inverse], distanceMethod);
+                        long dist = distanceFn(color, customColors[i, inverse]);
                         if (dist < mindist)
                         {
                             mindist = dist;
