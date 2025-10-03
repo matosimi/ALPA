@@ -84,6 +84,11 @@ namespace AlterLinePictureAproximator
         public long[,,] customP8MatchDist = new long[256, 2, 2];    ////reset every custom palette change
         public List<AlpaItem> alpaItems = new List<AlpaItem>();
         public Random rand = new Random();
+        private static readonly ThreadLocal<Random> ThreadRng = new ThreadLocal<Random>(() => new Random(unchecked(Environment.TickCount * 31 + Thread.CurrentThread.ManagedThreadId)));
+        private static Random GetThreadRandom()
+        {
+            return ThreadRng.Value!;
+        }
         public int totalPixels;
         public byte[,,,,] customP24Match = new byte[256, 256, 256, 2, 2];
         public long[,,,,] customP24MatchDist = new long[256, 256, 256, 2, 2];
@@ -243,10 +248,18 @@ namespace AlterLinePictureAproximator
             customColors = new Color[COLORS * COLORS, 2];
             for (int z = 0; z < 2; z++)
             {
-                List<byte> l0 = line0.ToList();
-                List<byte> l1 = line1.ToList();
-                l0.RemoveAt(3 - z);
-                l1.RemoveAt(3 - z);
+                // Build local color lines without the removed index, avoiding List allocations
+                int removeIndex = 3 - z;
+                byte[] l0 = new byte[COLORS];
+                byte[] l1 = new byte[COLORS];
+                int w = 0;
+                for (int ii = 0; ii < line0.Length; ii++)
+                {
+                    if (ii == removeIndex) continue;
+                    l0[w] = line0[ii];
+                    l1[w] = line1[ii];
+                    w++;
+                }
                 int index = 0;
                 for (int a = 0; a < COLORS; a++)
                 {
@@ -292,20 +305,19 @@ namespace AlterLinePictureAproximator
             //for (int i = 0; i < line0.Length; i++)
             //    solutionKey += $"{line0[i].ToString()}_{line1[i].ToString()}_";
 
-            //count the colors
-            List<Color> colors = new();
-            for (int z = 0; z < 2; z++)
-                for (int t = 0; t < 2; t++)
-                    for (int i = 0; i < customColors.GetLength(0); i++)
-                    {
-                        if (colorIgnoreMatrix[i, z, t] != 0 && !colors.Contains(customColors[i, z]))
-                            colors.Add(customColors[i, z]);
-                    }
-            labelPossibleColors.Text = $"Colors: {colors.Count} ";
-            colors.Clear();
-            //drawing part
+            //drawing part and color count only when drawing is requested
             if (!noDraw)
             {
+                List<Color> colors = new();
+                for (int z = 0; z < 2; z++)
+                    for (int t = 0; t < 2; t++)
+                        for (int i = 0; i < customColors.GetLength(0); i++)
+                        {
+                            if (colorIgnoreMatrix[i, z, t] != 0 && !colors.Contains(customColors[i, z]))
+                                colors.Add(customColors[i, z]);
+                        }
+                labelPossibleColors.Text = $"Colors: {colors.Count} ";
+                colors.Clear();
                 Bitmap p = new Bitmap(COLORS * 16 * 2, (COLORS + 2 + 2) * 16);
                 Graphics g = Graphics.FromImage(p);
                 const int OFFSET = COLORS * 16 + 1;
@@ -334,7 +346,9 @@ namespace AlterLinePictureAproximator
                     }
                 }
             }
-            Array.Clear(customP24Match);
+            // Only clear 24-bit cache when actually used
+            if (!UseReducedSource)
+                Array.Clear(customP24Match);
         }
         private void LoadPalette()
         {
@@ -397,10 +411,10 @@ namespace AlterLinePictureAproximator
             int[,] charMask = new int[32, charHeight];
             int[,] pmgMask = new int[32, height];
             int[,] bitmapDataIndexed = new int[width, height];
-            long[] charDiff = new long[2];
+            long charDiff0 = 0;
+            long charDiff1 = 0;
             long totalDiff = 0;
-            long[,,] pmgDiff = new long[4, 2, 2];
-
+            
             InitializeArrayToMinusOne(customP8Match);
             Array.Clear(customP8MatchDist);
             int[,,,] bitmapCharDataIndexed = new int[4, 4, 2, 2];
@@ -411,45 +425,69 @@ namespace AlterLinePictureAproximator
                 {
                     for (int z = 0; z < 2; z++) //inverse layer
                     {
-                        charDiff[z] = 0;
+                        if (z == 0) { charDiff0 = 0; } else { charDiff1 = 0; }
                         for (int cy = 0; cy < 4; cy++)
                         {
-                            for (int t = 0; t < 2; t++) //pmg layer
+                            // t=0 - pmg layer
+                            long sum0 = 0;
+                            for (int cx = 0; cx < 4; cx++)
                             {
-                                pmgDiff[cy, t, z] = 0;
-                                for (int cx = 0; cx < 4; cx++)
+                                long distance;
+                                int index;
+                                if (doDither)
                                 {
-                                    long distance;
-                                    int index;
-                                    if (doDither)
-                                    {
-                                        int pixelIndex = (x * 4 + cx + (y * 4 + cy) * 128) * 3;
-                                        Color desiredColor = Color.FromArgb(bitmapPixelsDithered[pixelIndex + 2], bitmapPixelsDithered[pixelIndex + 1], bitmapPixelsDithered[pixelIndex]);
-                                        (distance, index) = FindCustomClosest2(desiredColor, distanceMethod, z, t);
-                                        //distance = Distance(palette8[bit8map[x * 4 + cx, y * 4 + cy]], customColors[index, z], distanceMethod); //proper distance
-                                    }
-                                    else
-                                        if (UseReducedSource)
-                                        (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceMethod, z, t);
-                                    else
-                                        (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceMethod, z, t);
-
-                                    pmgDiff[cy, t, z] += (long)Math.Pow(distance, 2);
-                                    bitmapCharDataIndexed[cx, cy, z, t] = index;
+                                    int pixelIndex = (x * 4 + cx + (y * 4 + cy) * 128) * 3;
+                                    Color desiredColor = Color.FromArgb(bitmapPixelsDithered[pixelIndex + 2], bitmapPixelsDithered[pixelIndex + 1], bitmapPixelsDithered[pixelIndex]);
+                                    (distance, index) = FindCustomClosest2(desiredColor, distanceMethod, z, 0);
                                 }
+                                else if (UseReducedSource)
+                                {
+                                    (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceMethod, z, 0);
+                                }
+                                else
+                                {
+                                    (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceMethod, z, 0);
+                                }
+                                sum0 += distance * distance;
+                                bitmapCharDataIndexed[cx, cy, z, 0] = index;
                             }
-                            pmgCharData[cy, z] = (pmgDiff[cy, 0, z] > pmgDiff[cy, 1, z]) ? 1 : 0;
-                            charDiff[z] += pmgDiff[cy, pmgCharData[cy, z], z];
+                            // t=1
+                            long sum1 = 0;
+                            for (int cx = 0; cx < 4; cx++)
+                            {
+                                long distance;
+                                int index;
+                                if (doDither)
+                                {
+                                    int pixelIndex = (x * 4 + cx + (y * 4 + cy) * 128) * 3;
+                                    Color desiredColor = Color.FromArgb(bitmapPixelsDithered[pixelIndex + 2], bitmapPixelsDithered[pixelIndex + 1], bitmapPixelsDithered[pixelIndex]);
+                                    (distance, index) = FindCustomClosest2(desiredColor, distanceMethod, z, 1);
+                                }
+                                else if (UseReducedSource)
+                                {
+                                    (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceMethod, z, 1);
+                                }
+                                else
+                                {
+                                    (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceMethod, z, 1);
+                                }
+                                sum1 += distance * distance;
+                                bitmapCharDataIndexed[cx, cy, z, 1] = index;
+                            }
+                            int bestT = (sum0 > sum1) ? 1 : 0;
+                            pmgCharData[cy, z] = bestT;
+                            if (z == 0) charDiff0 += (bestT == 0 ? sum0 : sum1); else charDiff1 += (bestT == 0 ? sum0 : sum1);
                         }
                     }
-                    charMask[x, y] = (charDiff[0] > charDiff[1]) ? 1 : 0; //1=black
-                    totalDiff += charDiff[charMask[x, y]];
+                    int selectedZ = (charDiff0 > charDiff1) ? 1 : 0; //1=black
+                    charMask[x, y] = selectedZ;
+                    totalDiff += (selectedZ == 0 ? charDiff0 : charDiff1);
                     for (int cy = 0; cy < 4; cy++)  //fill pmg data based on selected char (normal or inverse)
                     {
-                        int pmgPixel = pmgCharData[cy, charMask[x, y]];
+                        int pmgPixel = pmgCharData[cy, selectedZ];
                         pmgMask[x, y * 4 + cy] = pmgPixel;
                         for (int cx = 0; cx < 4; cx++)
-                            bitmapDataIndexed[x * 4 + cx, y * 4 + cy] = bitmapCharDataIndexed[cx, cy, charMask[x, y], pmgPixel];
+                            bitmapDataIndexed[x * 4 + cx, y * 4 + cy] = bitmapCharDataIndexed[cx, cy, selectedZ, pmgPixel];
                     }
                 }
             return (totalDiff, bitmapDataIndexed, charMask: charMask, pmgMask: pmgMask);
@@ -1083,7 +1121,8 @@ namespace AlterLinePictureAproximator
             byte[] shifts = { 256 - 2, 2, 256 - 16, 16 };
             byte[] line;
             byte[] lineSec;
-            if (rand.Next(1) == 0)
+            Random rng = GetThreadRandom();
+            if (rng.Next(2) == 0)
             {
                 line = (byte[])srcline0.Clone();
                 lineSec = (byte[])srcline1.Clone();
@@ -1093,10 +1132,10 @@ namespace AlterLinePictureAproximator
                 line = (byte[])srcline1.Clone();
                 lineSec = (byte[])srcline0.Clone();
             }
-            int mutationType = rand.Next(6);
-            int colorIndex = rand.Next(COLORS + 1); //choose colorindex to mutate
+            int mutationType = rng.Next(6);
+            int colorIndex = rng.Next(COLORS + 1); //choose colorindex to mutate
             while (LOCKED_COLORS[colorIndex] == 1)
-                colorIndex = rand.Next(COLORS + 1);
+                colorIndex = rng.Next(COLORS + 1);
 
             switch (mutationType)
             {
@@ -1107,15 +1146,15 @@ namespace AlterLinePictureAproximator
                     line[colorIndex] += shifts[mutationType];
                     break;
                 case 4: //random
-                    line[colorIndex] = (byte)(((byte)rand.Next(256)) & 0xfe);
+                    line[colorIndex] = (byte)(((byte)rng.Next(256)) & 0xfe);
                     break;
                 case 5: //swap
-                    int whichOne = rand.Next((COLORS + 1) * 2); //0-11
+                    int whichOne = rng.Next((COLORS + 1) * 2); //0-11
                     while (whichOne == colorIndex || //cannot swap with itself
                            LOCKED_COLORS[whichOne % (COLORS + 1)] == 1 || //cannot swap locked color
                            ((whichOne - (COLORS + 1) == colorIndex) && (JOINED_COLORS[colorIndex] == 1))  //cannot switch same joined colors 
                         )
-                        whichOne = rand.Next((COLORS + 1) * 2); ;
+                        whichOne = rng.Next((COLORS + 1) * 2); ;
                     if (whichOne < COLORS + 1)
                         (line[colorIndex], line[whichOne]) = (line[whichOne], line[colorIndex]);
                     else
