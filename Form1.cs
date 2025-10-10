@@ -84,14 +84,17 @@ namespace AlterLinePictureAproximator
         public long[,,] customP8MatchDist = new long[256, 2, 2];    ////reset every custom palette change
         public List<AlpaItem> alpaItems = new List<AlpaItem>();
         public Random rand = new Random();
+        public int CharsPerLine => comboBoxCharsPerLine.SelectedIndex == 0 ? 32 : 40;
+        public int TargetWidth => CharsPerLine * 4;
         private static readonly ThreadLocal<Random> ThreadRng = new ThreadLocal<Random>(() => new Random(unchecked(Environment.TickCount * 31 + Thread.CurrentThread.ManagedThreadId)));
         private static Random GetThreadRandom()
         {
             return ThreadRng.Value!;
         }
         public int totalPixels;
-        public byte[,,,,] customP24Match = new byte[256, 256, 256, 2, 2];
-        public long[,,,,] customP24MatchDist = new long[256, 256, 256, 2, 2];
+        private static Bitmap openedBitmap;
+        //public byte[,,,,] customP24Match = new byte[256, 256, 256, 2, 2];
+        //public long[,,,,] customP24MatchDist = new long[256, 256, 256, 2, 2];
 
 
         public class AlpaItem
@@ -111,10 +114,21 @@ namespace AlterLinePictureAproximator
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            /*Vector4 rgb = new Vector4(30/255f, 60/255f, 90/255f, 0);
-            Vector4 lab = Conversion.RGBToLab(rgb);
-            Vector4 rgb2 = Conversion.LabToRGB(lab);*/
-            this.Text = "AlterLinePictureApproximator (ALPA) v1.0 by MatoSimi 4.4.2025";
+            openedBitmap = new Bitmap(pictureBoxSource.Image);
+            this.Text = "AlterLinePictureApproximator (ALPA) v1.0 by MatoSimi 10.10.2025";
+
+            trackBarGamma.Minimum = 1;
+            trackBarGamma.Maximum = 30;
+            trackBarGamma.Value = 10;
+
+            trackBarLightness.Minimum = -50;
+            trackBarLightness.Maximum = 50;
+            trackBarLightness.Value = 0;
+
+            trackBarSaturation.Minimum = 0;
+            trackBarSaturation.Maximum = 200;
+            trackBarSaturation.Value = 100;
+
             LoadPalette();
             CreatePal(comboBoxAverMethod.SelectedIndex);
             comboBoxDistance.SelectedIndex = 0;
@@ -122,11 +136,94 @@ namespace AlterLinePictureAproximator
             comboBoxAverMethod.SelectedIndex = 0;
             comboBoxLightness.SelectedIndex = 0;
             comboBoxLightness.Tag = 0;  //previous value
-            PictureToChannel(comboBoxAverMethod.SelectedIndex);
+            comboBoxCharsPerLine.SelectedIndex = 0; //preselect 32 chars narrow width
+            ApplyImageAdjustments();
             ReduceColors();
             pictureBoxResultLines.ZoomFactor = PictureBoxWithInterpolationMode.PictureBoxZoomFactor.x1;
             checkBoxAutoGenerate.Checked = true;
             ButtonGenerate_Click(this, null);
+        }
+
+        private void AdjustmentControls_Changed(object sender, EventArgs e)
+        {
+            labelL.Text = $"L\n{trackBarLightness.Value}";
+            labelS.Text = $"S\n{trackBarSaturation.Value}";
+            labelG.Text = $"G\n{trackBarGamma.Value}";
+            ApplyImageAdjustments();
+            if (checkBoxAutoGenerate.Checked)
+                ButtonGenerate_Click(this, null);
+        }
+
+        private void ApplyImageAdjustments()
+        {
+            Bitmap original = (Bitmap)pictureBoxSource.Image;
+            Bitmap adjusted = new Bitmap(TargetWidth, srcHeight, original.PixelFormat);
+
+            using (Graphics g = Graphics.FromImage(adjusted))
+            {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.DrawImage(original, 0, 0, TargetWidth, srcHeight);
+            }
+
+            float gamma = trackBarGamma.Value / 10f;
+            float lightness = trackBarLightness.Value / 100f; // from -0.5 to 0.5
+            float saturation = trackBarSaturation.Value / 100f;
+
+            Bitmap gammaCorrected = new Bitmap(adjusted.Width, adjusted.Height);
+            using (Graphics g = Graphics.FromImage(gammaCorrected))
+            {
+                ImageAttributes gammaAttributes = new ImageAttributes();
+                gammaAttributes.SetGamma(gamma);
+                g.DrawImage(adjusted, new Rectangle(0, 0, adjusted.Width, adjusted.Height),
+                    0, 0, adjusted.Width, adjusted.Height, GraphicsUnit.Pixel, gammaAttributes);
+            }
+
+            Bitmap final = new Bitmap(adjusted.Width, adjusted.Height);
+            using (Graphics g = Graphics.FromImage(final))
+            {
+                if (saturation != 1.0f || lightness != 0.0f)
+                {
+                    ImageAttributes satLightAttributes = new ImageAttributes();
+                    float s = saturation;
+                    float t_sat = (1.0f - s) / 2.0f;
+
+                    ColorMatrix colorMatrix = new ColorMatrix(
+                        new float[][]
+                        {
+                            new float[] {t_sat+s, t_sat, t_sat, 0, 0},
+                            new float[] {t_sat, t_sat+s, t_sat, 0, 0},
+                            new float[] {t_sat, t_sat, t_sat+s, 0, 0},
+                            new float[] {0, 0, 0, 1, 0},
+                            new float[] {lightness, lightness, lightness, 0, 1}
+                        });
+                    satLightAttributes.SetColorMatrix(colorMatrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
+                    g.DrawImage(gammaCorrected, new Rectangle(0, 0, final.Width, final.Height),
+                        0, 0, gammaCorrected.Width, gammaCorrected.Height, GraphicsUnit.Pixel, satLightAttributes);
+                }
+                else
+                {
+                    g.DrawImage(gammaCorrected, 0, 0);
+                }
+            }
+
+            Bitmap t = new Bitmap(final.Width, final.Height / 2);
+            srcChannelMatrix = new byte[t.Width, t.Height, 3];
+            int method = comboBoxAverMethod.SelectedIndex;
+            for (int y = 0; y < t.Height; y++)
+            {
+                for (int x = 0; x < t.Width; x++)
+                {
+                    Color src = AverageColor(final.GetPixel(x, y * 2), final.GetPixel(x, y * 2 + 1), method);
+                    srcChannelMatrix[x, y, 0] = src.R;
+                    srcChannelMatrix[x, y, 1] = src.G;
+                    srcChannelMatrix[x, y, 2] = src.B;
+
+                    t.SetPixel(x, y, src);
+                }
+            }
+            pictureBoxSrcData.Image = new Bitmap(t);
+            totalPixels = srcChannelMatrix.Length / 3;
+            ReduceColors();
         }
 
 
@@ -347,8 +444,8 @@ namespace AlterLinePictureAproximator
                 }
             }
             // Only clear 24-bit cache when actually used
-            if (!UseReducedSource)
-                Array.Clear(customP24Match);
+            // if (!UseReducedSource)
+            //   Array.Clear(customP24Match);
         }
         private void LoadPalette()
         {
@@ -372,23 +469,7 @@ namespace AlterLinePictureAproximator
 
         private void PictureToChannel(int method)
         {
-            Bitmap b = (Bitmap)pictureBoxSource.Image;
-            Bitmap t = new Bitmap(pictureBoxSource.Image.Width, pictureBoxSource.Image.Height / 2);
-            srcChannelMatrix = new byte[t.Width, t.Height, 3];
-            for (int y = 0; y < t.Height; y++)
-            {
-                for (int x = 0; x < t.Width; x++)
-                {
-                    Color src = AverageColor(b.GetPixel(x, y * 2), b.GetPixel(x, y * 2 + 1), method);
-                    srcChannelMatrix[x, y, 0] = src.R;
-                    srcChannelMatrix[x, y, 1] = src.G;
-                    srcChannelMatrix[x, y, 2] = src.B;
-
-                    t.SetPixel(x, y, src);
-                }
-            }
-            pictureBoxSrcData.Image = new Bitmap(t);
-            totalPixels = srcChannelMatrix.Length / 3;
+            ApplyImageAdjustments();
         }
 
         //initialize customP8Match with -1 value in each cell
@@ -409,20 +490,21 @@ namespace AlterLinePictureAproximator
             int height = srcChannelMatrix.GetLength(1);
 
             int charHeight = height / 4;
-            int[,] charMask = new int[32, charHeight];
-            int[,] pmgMask = new int[32, height];
+            int charsPerLine = CharsPerLine;
+            int[,] charMask = new int[charsPerLine, charHeight];
+            int[,] pmgMask = new int[charsPerLine, height];
             int[,] bitmapDataIndexed = new int[width, height];
             long charDiff0 = 0;
             long charDiff1 = 0;
             long totalDiff = 0;
-            
+
             InitializeArrayToMinusOne(customP8Match);
             Array.Clear(customP8MatchDist);
             int[,,,] bitmapCharDataIndexed = new int[4, 4, 2, 2];
             int[,] pmgCharData = new int[4, 2];
 
             for (int y = 0; y < charHeight; y++)
-                for (int x = 0; x < 32; x++)
+                for (int x = 0; x < charsPerLine; x++)
                 {
                     for (int z = 0; z < 2; z++) //inverse layer
                     {
@@ -437,7 +519,7 @@ namespace AlterLinePictureAproximator
                                 int index;
                                 if (doDither)
                                 {
-                                    int pixelIndex = (x * 4 + cx + (y * 4 + cy) * 128) * 3;
+                                    int pixelIndex = (x * 4 + cx + (y * 4 + cy) * TargetWidth) * 3;
                                     Color desiredColor = Color.FromArgb(bitmapPixelsDithered[pixelIndex + 2], bitmapPixelsDithered[pixelIndex + 1], bitmapPixelsDithered[pixelIndex]);
                                     (distance, index) = FindCustomClosest2(desiredColor, distanceFn, z, 0);
                                 }
@@ -460,7 +542,7 @@ namespace AlterLinePictureAproximator
                                 int index;
                                 if (doDither)
                                 {
-                                    int pixelIndex = (x * 4 + cx + (y * 4 + cy) * 128) * 3;
+                                    int pixelIndex = (x * 4 + cx + (y * 4 + cy) * TargetWidth) * 3;
                                     Color desiredColor = Color.FromArgb(bitmapPixelsDithered[pixelIndex + 2], bitmapPixelsDithered[pixelIndex + 1], bitmapPixelsDithered[pixelIndex]);
                                     (distance, index) = FindCustomClosest2(desiredColor, distanceFn, z, 1);
                                 }
@@ -510,8 +592,9 @@ namespace AlterLinePictureAproximator
             int height = srcChannelMatrix.GetLength(1);
 
             int charHeight = height / 4;
-            int[,] charMask = new int[32, charHeight];
-            int[,] pmgMask = new int[32, height];
+            int charsPerLine = CharsPerLine;
+            int[,] charMask = new int[charsPerLine, charHeight];
+            int[,] pmgMask = new int[charsPerLine, height];
             int[,] bitmapDataIndexed = new int[width, height];
             long[] charDiff = new long[2];
             long totalDiff = 0;
@@ -594,7 +677,7 @@ namespace AlterLinePictureAproximator
         }
         private void Redraw(int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask)
         {
-            int width = charMask.GetLength(0) * 4;
+            int width = TargetWidth;
             int height = charMask.GetLength(1) * 4;
             Bitmap t = new Bitmap(width, height, PixelFormat.Format24bppRgb);
             Bitmap u = new Bitmap(width * 2, height * 2, PixelFormat.Format24bppRgb); //alterlines (double the size)
@@ -697,7 +780,7 @@ namespace AlterLinePictureAproximator
             };
         }
 
-        
+
         /// <summary>
         /// Finds closest color towards picture reduced to 256 colors
         /// </summary>
@@ -734,7 +817,7 @@ namespace AlterLinePictureAproximator
                 return (distance: customP8MatchDist[p8index, inverse, pmg], index: indexStored);
         }
 
-        
+
         /// <summary>
         /// Finds closest color, incl.pmg+bg for ideal dithered image (from which we do atari dithered image with fat pmg pixels)
         /// </summary>
@@ -782,28 +865,29 @@ namespace AlterLinePictureAproximator
         private (long distance, int index) FindCustomClosest2(Color color, Func<Color, Color, long> distanceFn, int inverse, int pmg)
         {
             long mindist = long.MaxValue;
-            int index = customP24Match[color.R, color.G, color.B, inverse, pmg] - 1;
+            int index = 0;
+            /*int index = customP24Match[color.R, color.G, color.B, inverse, pmg] - 1;
             if (index < 0)
+            {*/
+            for (byte i = 0; i < COLORS * COLORS; i++)
             {
-                for (byte i = 0; i < COLORS * COLORS; i++)
+                if (colorIgnoreMatrix[i, inverse, pmg] != 0)
                 {
-                    if (colorIgnoreMatrix[i, inverse, pmg] != 0)
+                    long dist = distanceFn(color, customColors[i, inverse]);
+                    if (dist < mindist)
                     {
-                        long dist = distanceFn(color, customColors[i, inverse]);
-                        if (dist < mindist)
-                        {
-                            mindist = dist;
-                            index = i;
-                        }
+                        mindist = dist;
+                        index = i;
                     }
                 }
-                customP24Match[color.R, color.G, color.B, inverse, pmg] = (byte)(index + 1);
-                customP24MatchDist[color.R, color.G, color.B, inverse, pmg] = mindist;
             }
-            else
-            {
-                mindist = customP24MatchDist[color.R, color.G, color.B, inverse, pmg];
-            }
+            /*   customP24Match[color.R, color.G, color.B, inverse, pmg] = (byte)(index + 1);
+               customP24MatchDist[color.R, color.G, color.B, inverse, pmg] = mindist;
+           }
+           else
+           {
+               mindist = customP24MatchDist[color.R, color.G, color.B, inverse, pmg];
+           }*/
             return (distance: mindist, index: index);
         }
 
@@ -884,6 +968,36 @@ namespace AlterLinePictureAproximator
                 ButtonGenerate_Click(this, null);
         }
 
+        private Bitmap ResizeSource()
+        {
+            Bitmap bmp = openedBitmap;
+
+            //if halfwidth fallback then double the width first
+            if (checkBoxHalfWidthFallback.Checked)
+            {
+                Bitmap srcBmp = new Bitmap(bmp.Width * 2, bmp.Height);
+                Graphics g2 = Graphics.FromImage(srcBmp);
+                g2.InterpolationMode = InterpolationMode.NearestNeighbor;
+                g2.DrawImage(bmp, new Rectangle(0, 0, srcBmp.Width, srcBmp.Height));
+                bmp = srcBmp;
+            }
+
+            //resize to selected 32 or 40 char width
+            float ratio = bmp.Width / ((float)TargetWidth * 2);
+            srcHeight = (int)(bmp.Height / ratio);
+            if (srcHeight > 224)
+                srcHeight = 224;
+            else
+                srcHeight += srcHeight % 8;
+            srcHeightChar = srcHeight / 8;
+            Bitmap scaled = new Bitmap(TargetWidth * 2, srcHeight);
+            Graphics g = Graphics.FromImage(scaled);
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            g.DrawImage(bmp, new Rectangle(0, 0, TargetWidth * 2, srcHeight));
+
+            return scaled;
+        }
+
         private void ButtonOpen_Click(object sender, EventArgs e)
         {
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
@@ -892,43 +1006,28 @@ namespace AlterLinePictureAproximator
                 try
                 {
                     bmp = new Bitmap(Bitmap.FromFile(openFileDialog1.FileName));
+                    openedBitmap = bmp;
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show($"Picture {openFileDialog1.FileName} cannot be open: {ex.Message}");
                     return;
                 }
-                if (bmp.Width == 128 && bmp.Height <= 192)
-                    pictureBoxSource.Image = bmp;
-                else
-                {
-                    float ratio = bmp.Width / 256f;
-                    srcHeight = (int)(bmp.Height / ratio);
-                    Bitmap scaled = new Bitmap(256, srcHeight);
-                    Graphics g = Graphics.FromImage(scaled);
-                    g.DrawImage(bmp, new Rectangle(0, 0, 256, srcHeight));
-                    if (srcHeight > 192)
-                        srcHeight = 192;
-                    else
-                        srcHeight += srcHeight % 8;
-                    srcHeightChar = srcHeight / 8;
-
-                    Bitmap input = new Bitmap(128, srcHeight);
-                    g = Graphics.FromImage(input);
-                    g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                    g.DrawImage(scaled, new Rectangle(0, 0, 128, srcHeight), new Rectangle(0, 0, 256, srcHeight), GraphicsUnit.Pixel);
-                    pictureBoxSource.Image = input;
-                    pictureBoxSource.Size = pictureBoxSource.Image.Size;
-                    g.Dispose();
-                    bmp.Dispose();
-                    scaled.Dispose();
-                    labelOutputSize.Text = $"Output: 256 * {srcHeight} ({srcHeightChar})";
-                }
-                PictureToChannel(comboBoxAverMethod.SelectedIndex);
-                CreatePal(comboBoxAverMethod.SelectedIndex);
-                ReduceColors();
+                pictureBoxSource.Image = ResizeSource();
             }
+            pictureBoxSource.Size = pictureBoxSource.Image.Size;
+            labelOutputSize.Text = $"Output: {TargetWidth * 2} * {srcHeight} ({srcHeightChar})";
+            // Reset controls to default values
+            trackBarGamma.Value = 10;
+            trackBarLightness.Value = 0;
+            trackBarSaturation.Value = 100;
+
+            PictureToChannel(comboBoxAverMethod.SelectedIndex);
+            CreatePal(comboBoxAverMethod.SelectedIndex);
+            ReduceColors();
         }
+
+
 
         private void CentauriInit(int population)
         {
@@ -1213,23 +1312,36 @@ namespace AlterLinePictureAproximator
 
         private void AtariExport()
         {
+            int pmgs = CharsPerLine == 32 ? 4 : 5;
             (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, Dither);
-            byte[] vram = new byte[32 * srcHeightChar];
+            byte[] vram = new byte[CharsPerLine * srcHeightChar];
             int height = charMask.GetLength(1);
-            for (int y = 0; y < height; y++)
-                for (int x = 0; x < 32; x++)
-                    vram[x + y * 32] = (byte)(x + (y % 4) * 32 + 128 * charMask[x, y]);
 
-            for (int y = height; y < srcHeightChar; y++)
-                for (int x = 0; x < 32; x++)
-                    vram[x + y * 32] = (byte)(x + (y % 4) * 32);
+            if (CharsPerLine == 32)
+            {
+                for (int y = 0; y < height; y++)
+                    for (int x = 0; x < CharsPerLine; x++)
+                        vram[x + y * CharsPerLine] = (byte)(x + (y % 4) * CharsPerLine + 128 * charMask[x, y]);
 
+                for (int y = height; y < srcHeightChar; y++)
+                    for (int x = 0; x < CharsPerLine; x++)
+                        vram[x + y * CharsPerLine] = (byte)(x + (y % 4) * CharsPerLine);
+            }
+            else
+            {
+                //40 char mode
+                for (int y = 0; y < height; y++)
+                    for (int x = 0; x < CharsPerLine; x++)
+                        vram[x + y * CharsPerLine] = (byte)(x + (y % 3) * CharsPerLine + 128 * charMask[x, y]);
+            }
             int pointer = 0;
             byte[] remap = { 1, 2, 3, 0, 0 };
-            byte[] charsets = new byte[32 * srcHeightChar * 8];
+            int charsetLength = (int)Math.Ceiling(srcHeightChar / (CharsPerLine == 32 ? 4f : 3f)) * 1024;
+            byte[] charsets = new byte[charsetLength];
             int pixelValue = 0;
             for (int y = 0; y < height; y++)
-                for (int x = 0; x < 32; x++)
+            {
+                for (int x = 0; x < CharsPerLine; x++)
                 {
                     //int picnum = mask[x, y];
                     for (int i = 0; i < 8; i++) //8 bytes of a char
@@ -1249,15 +1361,18 @@ namespace AlterLinePictureAproximator
                         pointer++;
                     }
                 }
+                if (CharsPerLine == 40 && y % 3 == 2)
+                    pointer += 64;  //skip unused 8 chars in 40char mode
+            }
 
             //byte[] colors = new byte[9] { line0[1], line0[4], line0[0], line1[0], line0[2], line1[2], line0[3], line1[3], 0 };
             byte[] colors = new byte[11] { line0[0], line0[1], line0[2], line0[3], line1[0], line1[1], line1[2], line1[3], line0[4], line0[5], 0 };
             colors[10] = (byte)(checkBoxInterlace.Checked ? 1 : 0);
 
-            byte[] pmdata = new byte[128 * 4];
+            byte[] pmdata = new byte[128 * pmgs];
             int topOffset = 16;
             for (int y = 0; y < height * 4; y++)
-                for (int pm = 0; pm < 4; pm++)
+                for (int pm = 0; pm < pmgs; pm++)
                 {
                     int bit = 0x80;
                     int value = 0;
@@ -1292,13 +1407,28 @@ namespace AlterLinePictureAproximator
             Array.Copy(colors, 0, xex, 0x1f16, colors.Length);
             File.WriteAllBytes("output.xex", xex);
             */
-            byte[] xex = File.ReadAllBytes(@"atari\alterline4.xex");
-            Array.Copy(pmdata, 0, xex, 0x02b0, pmdata.Length);
-            Array.Copy(charsets, 0, xex, 0x04b4, charsets.Length);
-            Array.Fill(xex, (byte)0, 0x04b4 + charsets.Length, 32 * 24 * 8 - charsets.Length);
-            Array.Copy(vram, 0, xex, 0x1cb8, vram.Length);
-            Array.Copy(colors, 0, xex, 0x1fb8, colors.Length);
-            File.WriteAllBytes("output.xex", xex);
+            if (CharsPerLine == 32)
+            {
+                byte[] xex = File.ReadAllBytes(@"atari\alterline4.xex");
+                Array.Copy(pmdata, 0, xex, 0x02b0, pmdata.Length);
+                Array.Copy(charsets, 0, xex, 0x04b4, charsets.Length);
+                Array.Fill(xex, (byte)0, 0x04b4 + charsets.Length, 32 * 24 * 8 - charsets.Length);
+                Array.Copy(vram, 0, xex, 0x1cb8, vram.Length);
+                Array.Copy(colors, 0, xex, 0x1fb8, colors.Length);
+                File.WriteAllBytes("output.xex", xex);
+            }
+            else //40chars
+            {
+                /*
+                byte[] xex = File.ReadAllBytes(@"atari\alterline4_40.xex");
+                Array.Copy(pmdata, 0, xex, 0x02b0, pmdata.Length);
+                Array.Copy(charsets, 0, xex, 0x04b4, charsets.Length);
+                Array.Fill(xex, (byte)0, 0x04b4 + charsets.Length, 32 * 24 * 8 - charsets.Length);
+                Array.Copy(vram, 0, xex, 0x1cb8, vram.Length);
+                Array.Copy(colors, 0, xex, 0x1fb8, colors.Length);
+                File.WriteAllBytes("output.xex", xex);
+                */
+            }
         }
 
         private void ButtonXex_Click(object sender, EventArgs e)
@@ -1502,29 +1632,9 @@ namespace AlterLinePictureAproximator
         {
             CreatePal(comboBoxAverMethod.SelectedIndex, true);
             CreateIdealDitheredSolution(comboBoxDistance.SelectedIndex, comboBoxDither.SelectedIndex, (float)numericUpDownDitherStrength.Value / 10f);
-            (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, Dither);
-            Redraw(bitmapDataIndexed, charMask, pmgMask);
+            ButtonAlpaCentauriInit_Click(this, null);
+            //ButtonGenerate_Click(this, e);
 
-        }
-
-        private void ButtonImportColors_Click(object sender, EventArgs e)
-        {
-            if (openFileDialog1.ShowDialog() == DialogResult.OK)
-            {
-                byte[] data = File.ReadAllBytes(openFileDialog1.FileName);
-                if (data.Length != 11)
-                {
-                    MessageBox.Show("wrong file");
-                    return;
-                }
-                Array.Copy(data, 0, line0, 0, 4);
-                Array.Copy(data, 4, line1, 0, 4);
-                Array.Copy(data, 8, line0, 4, 2);
-                Array.Copy(data, 8, line1, 4, 2);
-                CreatePal(comboBoxAverMethod.SelectedIndex, false);
-                ButtonAlpaCentauriInit_Click(this, null);
-                //ButtonGenerate_Click(this, e);
-            }
         }
 
         private void ComboBoxLightness_SelectedIndexChanged(object sender, EventArgs e)
@@ -1575,6 +1685,39 @@ namespace AlterLinePictureAproximator
         {
             if (checkBoxAutoGenerate.Checked)
                 ButtonGenerate_Click(this, null);
+        }
+
+        private void label11_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void ButtonImportColors_Click(object sender, EventArgs e)
+        {
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                byte[] data = File.ReadAllBytes(openFileDialog1.FileName);
+                if (data.Length != 11)
+                {
+                    MessageBox.Show("wrong file");
+                    return;
+                }
+                Array.Copy(data, 0, line0, 0, 4);
+                Array.Copy(data, 4, line1, 0, 4);
+                Array.Copy(data, 8, line0, 4, 2);
+                Array.Copy(data, 8, line1, 4, 2);
+                CreatePal(comboBoxAverMethod.SelectedIndex, false);
+                ButtonAlpaCentauriInit_Click(this, null);
+                //ButtonGenerate_Click(this, e);
+            }
+        }
+
+        private void ComboBoxCharsPerLine_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            pictureBoxSource.Image = ResizeSource();
+            pictureBoxSource.Size = pictureBoxSource.Image.Size;
+            labelOutputSize.Text = $"Output: {TargetWidth * 2} * {srcHeight} ({srcHeightChar})";
+            ApplyImageAdjustments();
         }
     }
 

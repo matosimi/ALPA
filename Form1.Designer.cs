@@ -1,4 +1,4 @@
-﻿namespace AlterLinePictureAproximator
+namespace AlterLinePictureAproximator
 {
     partial class Form1
     {
@@ -45,6 +45,13 @@
             pictureBoxResult = new PictureBoxWithInterpolationMode();
             pictureBoxMasks = new PictureBoxWithInterpolationMode();
             pictureBoxResultLines = new PictureBoxWithInterpolationMode();
+            groupBoxLSG = new GroupBox();
+            labelG = new Label();
+            labelS = new Label();
+            labelL = new Label();
+            trackBarSaturation = new TrackBar();
+            trackBarGamma = new TrackBar();
+            trackBarLightness = new TrackBar();
             buttonXex = new Button();
             checkBoxInterlace = new CheckBox();
             checkBoxAutoUpdate = new CheckBox();
@@ -70,6 +77,8 @@
             label2 = new Label();
             numericUpDownHepaChroma = new NumericUpDown();
             numericUpDownDitherStrength = new NumericUpDown();
+            buttonImportColors = new Button();
+            checkBoxHalfWidthFallback = new CheckBox();
             progressBarAI = new ProgressBar();
             labelGenerationDone = new Label();
             buttonGenerate = new Button();
@@ -78,8 +87,8 @@
             labelOutputSize = new Label();
             splitContainer1 = new SplitContainer();
             panel1 = new Panel();
+            comboBoxCharsPerLine = new ComboBox();
             checkBoxAutoGenerate = new CheckBox();
-            buttonImportColors = new Button();
             label7 = new Label();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSource).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxPalette).BeginInit();
@@ -90,6 +99,10 @@
             ((System.ComponentModel.ISupportInitialize)pictureBoxResult).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxMasks).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxResultLines).BeginInit();
+            groupBoxLSG.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)trackBarSaturation).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)trackBarGamma).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)trackBarLightness).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownPopulation).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownGeneration).BeginInit();
             groupBox1.SuspendLayout();
@@ -107,10 +120,10 @@
             // pictureBoxSource
             // 
             pictureBoxSource.Image = (Image)resources.GetObject("pictureBoxSource.Image");
-            pictureBoxSource.Location = new Point(13, 14);
+            pictureBoxSource.Location = new Point(13, 5);
             pictureBoxSource.Margin = new Padding(4, 5, 4, 5);
             pictureBoxSource.Name = "pictureBoxSource";
-            pictureBoxSource.Size = new Size(182, 211);
+            pictureBoxSource.Size = new Size(320, 224);
             pictureBoxSource.TabIndex = 0;
             pictureBoxSource.TabStop = false;
             // 
@@ -143,7 +156,7 @@
             comboBoxDither.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxDither.FormattingEnabled = true;
             comboBoxDither.Items.AddRange(new object[] { "chess", "sierra lite", "F-S" });
-            comboBoxDither.Location = new Point(225, 130);
+            comboBoxDither.Location = new Point(389, 130);
             comboBoxDither.Margin = new Padding(4, 5, 4, 5);
             comboBoxDither.Name = "comboBoxDither";
             comboBoxDither.Size = new Size(154, 33);
@@ -153,7 +166,7 @@
             // checkBoxUseDither
             // 
             checkBoxUseDither.AutoSize = true;
-            checkBoxUseDither.Location = new Point(225, 95);
+            checkBoxUseDither.Location = new Point(389, 93);
             checkBoxUseDither.Margin = new Padding(4, 5, 4, 5);
             checkBoxUseDither.Name = "checkBoxUseDither";
             checkBoxUseDither.Size = new Size(143, 29);
@@ -168,17 +181,17 @@
             comboBoxDistance.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxDistance.FormattingEnabled = true;
             comboBoxDistance.Items.AddRange(new object[] { "RGB simple", "RGB euclid", "RGBYUV", "YUV euclid", "Weighted RGB" });
-            comboBoxDistance.Location = new Point(225, 235);
+            comboBoxDistance.Location = new Point(389, 235);
             comboBoxDistance.Margin = new Padding(4, 5, 4, 5);
             comboBoxDistance.Name = "comboBoxDistance";
-            comboBoxDistance.Size = new Size(163, 33);
+            comboBoxDistance.Size = new Size(154, 33);
             comboBoxDistance.TabIndex = 15;
             comboBoxDistance.SelectedIndexChanged += ComboBoxDistance_SelectedIndexChanged;
             // 
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(234, 205);
+            label1.Location = new Point(389, 205);
             label1.Margin = new Padding(4, 0, 4, 0);
             label1.Name = "label1";
             label1.Size = new Size(151, 25);
@@ -209,6 +222,7 @@
             flowLayoutPanel1.Controls.Add(pictureBoxMasks);
             flowLayoutPanel1.Controls.Add(pictureBoxResultLines);
             flowLayoutPanel1.Controls.Add(pictureBoxIdealDither);
+            flowLayoutPanel1.Controls.Add(groupBoxLSG);
             flowLayoutPanel1.Dock = DockStyle.Fill;
             flowLayoutPanel1.Location = new Point(0, 0);
             flowLayoutPanel1.Margin = new Padding(4, 5, 4, 5);
@@ -275,6 +289,87 @@
             pictureBoxResultLines.TabIndex = 16;
             pictureBoxResultLines.TabStop = false;
             toolTip1.SetToolTip(pictureBoxResultLines, "Result without blending");
+            // 
+            // groupBoxLSG
+            // 
+            groupBoxLSG.Controls.Add(labelG);
+            groupBoxLSG.Controls.Add(labelS);
+            groupBoxLSG.Controls.Add(labelL);
+            groupBoxLSG.Controls.Add(trackBarSaturation);
+            groupBoxLSG.Controls.Add(trackBarGamma);
+            groupBoxLSG.Controls.Add(trackBarLightness);
+            groupBoxLSG.Location = new Point(3, 93);
+            groupBoxLSG.Name = "groupBoxLSG";
+            groupBoxLSG.Size = new Size(382, 269);
+            groupBoxLSG.TabIndex = 49;
+            groupBoxLSG.TabStop = false;
+            groupBoxLSG.Text = "Lightness Saturation Gamma";
+            // 
+            // labelG
+            // 
+            labelG.AutoSize = true;
+            labelG.Location = new Point(16, 186);
+            labelG.Margin = new Padding(4, 0, 4, 0);
+            labelG.Name = "labelG";
+            labelG.Size = new Size(24, 25);
+            labelG.TabIndex = 51;
+            labelG.Text = "G";
+            labelG.Click += label11_Click;
+            // 
+            // labelS
+            // 
+            labelS.AutoSize = true;
+            labelS.Location = new Point(16, 112);
+            labelS.Margin = new Padding(4, 0, 4, 0);
+            labelS.Name = "labelS";
+            labelS.Size = new Size(22, 25);
+            labelS.TabIndex = 50;
+            labelS.Text = "S";
+            // 
+            // labelL
+            // 
+            labelL.AutoSize = true;
+            labelL.Location = new Point(16, 45);
+            labelL.Margin = new Padding(4, 0, 4, 0);
+            labelL.Name = "labelL";
+            labelL.Size = new Size(20, 25);
+            labelL.TabIndex = 49;
+            labelL.Text = "L";
+            // 
+            // trackBarSaturation
+            // 
+            trackBarSaturation.Location = new Point(42, 105);
+            trackBarSaturation.Maximum = 20;
+            trackBarSaturation.Name = "trackBarSaturation";
+            trackBarSaturation.Size = new Size(333, 69);
+            trackBarSaturation.TabIndex = 48;
+            trackBarSaturation.TickFrequency = 10;
+            trackBarSaturation.TickStyle = TickStyle.None;
+            trackBarSaturation.Value = 10;
+            trackBarSaturation.Scroll += AdjustmentControls_Changed;
+            // 
+            // trackBarGamma
+            // 
+            trackBarGamma.Location = new Point(42, 186);
+            trackBarGamma.Maximum = 50;
+            trackBarGamma.Minimum = 1;
+            trackBarGamma.Name = "trackBarGamma";
+            trackBarGamma.Size = new Size(333, 69);
+            trackBarGamma.TabIndex = 48;
+            trackBarGamma.TickStyle = TickStyle.TopLeft;
+            toolTip1.SetToolTip(trackBarGamma, "Gamma");
+            trackBarGamma.Value = 10;
+            trackBarGamma.Scroll += AdjustmentControls_Changed;
+            // 
+            // trackBarLightness
+            // 
+            trackBarLightness.Location = new Point(41, 30);
+            trackBarLightness.Maximum = 20;
+            trackBarLightness.Name = "trackBarLightness";
+            trackBarLightness.Size = new Size(334, 69);
+            trackBarLightness.TabIndex = 47;
+            trackBarLightness.Value = 10;
+            trackBarLightness.Scroll += AdjustmentControls_Changed;
             // 
             // buttonXex
             // 
@@ -411,7 +506,7 @@
             checkBoxColorReduction.AutoSize = true;
             checkBoxColorReduction.Checked = true;
             checkBoxColorReduction.CheckState = CheckState.Checked;
-            checkBoxColorReduction.Location = new Point(234, 303);
+            checkBoxColorReduction.Location = new Point(204, 313);
             checkBoxColorReduction.Margin = new Padding(4, 5, 4, 5);
             checkBoxColorReduction.Name = "checkBoxColorReduction";
             checkBoxColorReduction.Size = new Size(161, 29);
@@ -426,7 +521,7 @@
             comboBoxAverMethod.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxAverMethod.FormattingEnabled = true;
             comboBoxAverMethod.Items.AddRange(new object[] { "RGB simple", "RGB euclid", "YUV euclid" });
-            comboBoxAverMethod.Location = new Point(225, 35);
+            comboBoxAverMethod.Location = new Point(389, 35);
             comboBoxAverMethod.Margin = new Padding(4, 5, 4, 5);
             comboBoxAverMethod.Name = "comboBoxAverMethod";
             comboBoxAverMethod.Size = new Size(154, 33);
@@ -436,7 +531,7 @@
             // label5
             // 
             label5.AutoSize = true;
-            label5.Location = new Point(225, 5);
+            label5.Location = new Point(389, 5);
             label5.Margin = new Padding(4, 0, 4, 0);
             label5.Name = "label5";
             label5.Size = new Size(165, 25);
@@ -537,7 +632,7 @@
             // 
             // numericUpDownDitherStrength
             // 
-            numericUpDownDitherStrength.Location = new Point(315, 171);
+            numericUpDownDitherStrength.Location = new Point(479, 171);
             numericUpDownDitherStrength.Maximum = new decimal(new int[] { 10, 0, 0, 0 });
             numericUpDownDitherStrength.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             numericUpDownDitherStrength.Name = "numericUpDownDitherStrength";
@@ -546,6 +641,31 @@
             toolTip1.SetToolTip(numericUpDownDitherStrength, "10=max,1=min");
             numericUpDownDitherStrength.Value = new decimal(new int[] { 10, 0, 0, 0 });
             numericUpDownDitherStrength.ValueChanged += NumericUpDownDitherStrength_ValueChanged;
+            // 
+            // buttonImportColors
+            // 
+            buttonImportColors.Font = new Font("Segoe MDL2 Assets", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            buttonImportColors.Location = new Point(192, 394);
+            buttonImportColors.Margin = new Padding(4, 5, 4, 5);
+            buttonImportColors.Name = "buttonImportColors";
+            buttonImportColors.Size = new Size(49, 121);
+            buttonImportColors.TabIndex = 45;
+            buttonImportColors.Text = "";
+            toolTip1.SetToolTip(buttonImportColors, "Import colors (color2.dat)");
+            buttonImportColors.UseVisualStyleBackColor = true;
+            buttonImportColors.Click += ButtonImportColors_Click;
+            // 
+            // checkBoxHalfWidthFallback
+            // 
+            checkBoxHalfWidthFallback.AutoSize = true;
+            checkBoxHalfWidthFallback.Location = new Point(13, 342);
+            checkBoxHalfWidthFallback.Margin = new Padding(4, 5, 4, 5);
+            checkBoxHalfWidthFallback.Name = "checkBoxHalfWidthFallback";
+            checkBoxHalfWidthFallback.Size = new Size(179, 29);
+            checkBoxHalfWidthFallback.TabIndex = 48;
+            checkBoxHalfWidthFallback.Text = "Halfwidth fallback";
+            toolTip1.SetToolTip(checkBoxHalfWidthFallback, "Use 256colors instead of 24bit");
+            checkBoxHalfWidthFallback.UseVisualStyleBackColor = true;
             // 
             // progressBarAI
             // 
@@ -568,10 +688,10 @@
             // 
             // buttonGenerate
             // 
-            buttonGenerate.Location = new Point(439, 115);
+            buttonGenerate.Location = new Point(389, 278);
             buttonGenerate.Margin = new Padding(4, 5, 4, 5);
             buttonGenerate.Name = "buttonGenerate";
-            buttonGenerate.Size = new Size(131, 148);
+            buttonGenerate.Size = new Size(181, 109);
             buttonGenerate.TabIndex = 36;
             buttonGenerate.Text = "Generate";
             buttonGenerate.UseVisualStyleBackColor = true;
@@ -601,7 +721,7 @@
             // labelOutputSize
             // 
             labelOutputSize.AutoSize = true;
-            labelOutputSize.Location = new Point(13, 238);
+            labelOutputSize.Location = new Point(13, 258);
             labelOutputSize.Margin = new Padding(4, 0, 4, 0);
             labelOutputSize.Name = "labelOutputSize";
             labelOutputSize.Size = new Size(191, 25);
@@ -628,6 +748,8 @@
             // 
             // panel1
             // 
+            panel1.Controls.Add(checkBoxHalfWidthFallback);
+            panel1.Controls.Add(comboBoxCharsPerLine);
             panel1.Controls.Add(checkBoxAutoGenerate);
             panel1.Controls.Add(buttonImportColors);
             panel1.Controls.Add(label7);
@@ -666,11 +788,21 @@
             panel1.Size = new Size(583, 954);
             panel1.TabIndex = 0;
             // 
+            // comboBoxCharsPerLine
+            // 
+            comboBoxCharsPerLine.FormattingEnabled = true;
+            comboBoxCharsPerLine.Items.AddRange(new object[] { "32 (narrow)", "40 (normal)" });
+            comboBoxCharsPerLine.Location = new Point(211, 255);
+            comboBoxCharsPerLine.Name = "comboBoxCharsPerLine";
+            comboBoxCharsPerLine.Size = new Size(154, 33);
+            comboBoxCharsPerLine.TabIndex = 47;
+            comboBoxCharsPerLine.SelectedIndexChanged += ComboBoxCharsPerLine_SelectedIndexChanged;
+            // 
             // checkBoxAutoGenerate
             // 
             checkBoxAutoGenerate.AutoSize = true;
             checkBoxAutoGenerate.BackColor = SystemColors.ButtonHighlight;
-            checkBoxAutoGenerate.Location = new Point(482, 224);
+            checkBoxAutoGenerate.Location = new Point(488, 352);
             checkBoxAutoGenerate.Margin = new Padding(4, 5, 4, 5);
             checkBoxAutoGenerate.Name = "checkBoxAutoGenerate";
             checkBoxAutoGenerate.Size = new Size(77, 29);
@@ -678,23 +810,10 @@
             checkBoxAutoGenerate.Text = "Auto";
             checkBoxAutoGenerate.UseVisualStyleBackColor = false;
             // 
-            // buttonImportColors
-            // 
-            buttonImportColors.Font = new Font("Segoe MDL2 Assets", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            buttonImportColors.Location = new Point(192, 394);
-            buttonImportColors.Margin = new Padding(4, 5, 4, 5);
-            buttonImportColors.Name = "buttonImportColors";
-            buttonImportColors.Size = new Size(49, 121);
-            buttonImportColors.TabIndex = 45;
-            buttonImportColors.Text = "";
-            toolTip1.SetToolTip(buttonImportColors, "Import colors (color2.dat)");
-            buttonImportColors.UseVisualStyleBackColor = true;
-            buttonImportColors.Click += ButtonImportColors_Click;
-            // 
             // label7
             // 
             label7.AutoSize = true;
-            label7.Location = new Point(225, 173);
+            label7.Location = new Point(389, 173);
             label7.Margin = new Padding(4, 0, 4, 0);
             label7.Name = "label7";
             label7.Size = new Size(83, 25);
@@ -707,7 +826,6 @@
             AutoScaleMode = AutoScaleMode.Dpi;
             ClientSize = new Size(1414, 954);
             Controls.Add(splitContainer1);
-            Icon = (Icon)resources.GetObject("$this.Icon");
             Margin = new Padding(4, 5, 4, 5);
             Name = "Form1";
             Text = "appText";
@@ -721,6 +839,11 @@
             ((System.ComponentModel.ISupportInitialize)pictureBoxResult).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxMasks).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxResultLines).EndInit();
+            groupBoxLSG.ResumeLayout(false);
+            groupBoxLSG.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)trackBarSaturation).EndInit();
+            ((System.ComponentModel.ISupportInitialize)trackBarGamma).EndInit();
+            ((System.ComponentModel.ISupportInitialize)trackBarLightness).EndInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownPopulation).EndInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownGeneration).EndInit();
             groupBox1.ResumeLayout(false);
@@ -792,5 +915,14 @@
         private Label label8;
         private Label label6;
         private CheckBox checkBoxAutoGenerate;
+        private TrackBar trackBarLightness;
+        private TrackBar trackBarGamma;
+        private ComboBox comboBoxCharsPerLine;
+        private TrackBar trackBarSaturation;
+        private GroupBox groupBoxLSG;
+        private Label labelG;
+        private Label labelS;
+        private Label labelL;
+        private CheckBox checkBoxHalfWidthFallback;
     }
 }
