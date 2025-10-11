@@ -98,7 +98,7 @@ sys_ntsc
 	sta zpcolor+:1
 .endr
 
-	mva #28 count
+	mva #38 count
 @	ldx #0
 @
 x1	lda vramfont,x
@@ -136,13 +136,17 @@ vbi	phr
 	mva zpcolor+8 colpf0+4 ;bg
 	mva #$04 prior
 :4	mva #48+32*:1 hposp0+:1
-:4	mva #48+32*4+8*:1 hposm0+:1
+:4	mva #48+32*4+8*(3-:1) hposm0+:1
 	lda colors+9
 :4	sta colpm0+:1
 	lda #3
 :4	sta sizep0+:1
+	mva #$ff sizem
 	mva zpcolor+3 colpf0+3
-	mva #>vramfont chbase
+	
+@
+
+	
 	plr
 	rti
 .endl
@@ -151,7 +155,7 @@ vbi	phr
 dli	phr
 ;:2	sta wsync
 ?newfont = 999	
-.rept 9,4+#*4
+.rept 10,4+#*4
 ?poop = :1
 .rept 12,#
 ?turd = :1
@@ -159,7 +163,7 @@ dli	phr
 	ift ?newfont > 0
 	lda #$08 ;zpcolor+2
 	eif
-	ldy #$94
+	ldy #$94 ;zpcolor+1
 	ift ?newfont > 0
 	sta wsync
 	els
@@ -167,9 +171,6 @@ dli	phr
 	
 	eif
 	
-	;ift ?turd == 0
-	;	sty chbase
-	;e;if
 	ift ?newfont == 0
 	sta chbase
 	eif
@@ -194,35 +195,58 @@ dli	phr
 	lda #>vramfont+?poop
 ?newfont = 0
 .endr
-	;mwa #gameDli.dlib dli_ptr
+	mwa #gameDli.dlib dli_ptr
+	lda #>vrfont2
+	sta chbase
 	plr
 	rti
 	
 dlib	phr
-	ldy >vrfont2
-.rept 9,4+#*4
+	
+?newfont = 999
+.rept 10,4+#*4
 ?poop = :1
 .rept 12,#
 ?turd = :1
-	ldx zpcolor+0
-	lda zpcolor+6
+	ldx #$f2 ;zpcolor+0
+	ift ?newfont > 0
+	lda #$0a ;zpcolor+6
+	eif
+	ldy #$06 ;zpcolor+5
+	ift ?newfont > 0
 	sta wsync
-	ift ?turd == 0
-		sty chbase
+	els
+:19	nop
+
+	eif
+	
+	ift ?newfont == 0
+	sta chbase
 	eif
 	stx colpf0
+	sty COLPF0+1
+	ift ?newfont > 0
 	sta colpf0+2
-	mva zpcolor+5 colpf0+1
-	ldx zpcolor+4
-	lda zpcolor+2
+	els
+	lda #$0a ;zpcolor+6
+	sta colpf0+2
+	eif
+	
+	ldx #$f8 ;zpcolor+4
+	lda #$08 ;zpcolor+2
+	ldy #$94 ;zpcolor+1
 	sta wsync
 	stx colpf0
 	sta colpf0+2
-	mva zpcolor+1 colpf0+1
+	sty colpf0+1
+?newfont++
 .endr
-	ldy #>vrfont2+?poop
+	lda #>vrfont2+?poop
+	?newfont = 0
 .endr
 	mwa #gameDli.dli dli_ptr
+	lda #>vramfont
+	sta chbase
 	plr
 	rti	 	 
 	
@@ -345,8 +369,10 @@ pptr	lsr @
 
 .print "code: $2000-",*
 
-	org mypmbase -12
-	ins 'pmdata.dat'
+	org mypmbase-12
+	ins 'pmdata.dat',0,4*128
+	org mypmbase-12-128
+	ins 'pmdata.dat',4*128,128
 	org $5000
 vramfont	ins 'font.fnt'	
 .print "inserted font:",vramfont,"-",*-1
