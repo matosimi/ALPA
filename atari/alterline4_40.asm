@@ -1,5 +1,7 @@
 ;NTSC support
 
+sdmctl	equ $22f	;559
+coldst	equ $244	;580, set to 1 to cold start on RESET
 color0	equ $2c4
 hposp0	equ $d000
 hposm0	equ $d004
@@ -14,10 +16,12 @@ vdelay	equ $d01c ;shift PM by 1 scanline, first missiles,then players(bits)
 gractl	equ $d01d ;BIT1-ACTIV.PMG
 consol	equ $d01f
 random	equ $d20a
+irqen	equ $d20e	;0 = disable all maskable IRQs (keyboard,break,...)
 skctl	equ $d20f
 porta	equ $d300 ;stick 0,1
 portb	equ $d301
 dmactl	equ $d400
+
 dlistl	equ $d402
 hscrol	equ $d404
 pmbase	equ $d407
@@ -27,6 +31,7 @@ vcount	equ $d40b
 nmien	equ $d40e
 nmist	equ $d40f
 
+pokmsk	equ $10	;irq masking shadow
 roto	equ $40
 
 
@@ -51,6 +56,9 @@ stick	equ $97
 ntsc	equ $98
 ntsctimer	equ $99
 ntsccolor	equ $9a
+zpa	equ $9d	;DLI
+zpx	equ $9e
+zpy	equ $9f
 zpcolor	equ $a0	;8bytes
 
 mypmbase	equ $1600
@@ -58,6 +66,29 @@ mypmbase	equ $1600
 	run start
 
 	org $2000
+	
+.local	init
+	mva #0 irqen	;disable key and break interrupts
+	sta pokmsk	;shadow irqen
+	mva #1 coldst	;cold start after pressing reset btn.
+	mwa #idl $230
+	;mva #$32 color0+3
+	mva #0 sdmctl	;559
+	mva #$ff portb ;turn on osrom a load next block
+	rts
+idl	dta $70
+/*,$70,$70,$48,a(gr3)
+:23	dta 8
+	dta $70
+	dta 2*/
+	dta $41,a(idl)
+/*	
+gr3	dta 1 ; insert gr3 loading pic here
+:256	dta $1*/
+last
+.endl
+	ini init
+	
 start	;detect video system
 .local
 	mva #0 ntsc
@@ -93,8 +124,8 @@ sys_ntsc
 .rept	8,#
 	lda colors+:1 
 	getcolor
-	sta gamedli.c:1
-	sta gamedli.dli2.c:1
+	;sta gamedli.c:1
+	;sta gamedli.dli2.c:1
 	sta zpcolor+:1
 .endr
 
@@ -133,16 +164,16 @@ count	dta 0
 .local gameVbi	
 vbi	phr
 	inc 20
-	mva zpcolor+8 colpf0+4 ;bg
+	mva colors+8 colpf0+4 ;bg
 	mva #$04 prior
 :4	mva #48+32*:1 hposp0+:1
 :4	mva #48+32*4+8*(3-:1) hposm0+:1
-	lda colors+9
+	lda colors+9 ;pmgs
 :4	sta colpm0+:1
 	lda #3
 :4	sta sizep0+:1
 	mva #$ff sizem
-	mva zpcolor+3 colpf0+3
+;:4	mva zpcolor+# colpf0+#
 	
 @
 
@@ -152,57 +183,143 @@ vbi	phr
 .endl
 	
 .local gamedli
-dli	phr
-;:2	sta wsync
-?newfont = 999	
-.rept 10,4+#*4
+dli	
+	sta zpa
+	stx zpx
+	sty zpy
+
+?newfont = 0	
+.rept 10,#*4
 ?poop = :1
 .rept 12,#
 ?turd = :1
-	ldx #$f8 ;zpcolor+4
-	ift ?newfont > 0
-	lda #$08 ;zpcolor+2
-	eif
-	ldy #$94 ;zpcolor+1
-	ift ?newfont > 0
-	sta wsync
-	els
-:19	nop
+
+/*	ift ?turd == 4
+	lda zpa
+	ldx zpx
+	ldy zpy
+	rti
+	eif*/
 	
-	eif
 	
+	lda #$26 ;zpcolor
+	ldx #$12 ;zpcolor+1
+	ldy #$28 ;zpcolor+2
+
 	ift ?newfont == 0
-	sta chbase
-	eif
-	stx colpf0
-	sty COLPF0+1 ;zpcolor+1 colpf0+1
-	ift ?newfont > 0
-	sta colpf0+2
+		ift ?poop == 0	;very first font
+:18			nop
+		els
+:17			nop	;all other new fonts
+		eif
+
 	els
-	lda #$08 ;zpcolor+2
-	sta colpf0+2
+	sta wsync
 	eif
 	
-	ldx #$F2 ;zpcolor+0
-	lda #$0a ;zpcolor+6
-	ldy #$06
-	sta wsync
-	stx colpf0
-	sta colpf0+2
-	sty colpf0+1 ;zpcolor+5 colpf0+1
+	sta colpf0
+	ift ?newfont == 0
+	mva #>vramfont+?poop chbase
+	eif
+	stx colpf0+1 ;zpcolor+1 colpf0+1
+	sty colpf0+2
+	mva #$92 colpf0+3 
+
+	lda #$14 ;zpcolor+4
+	ldx #$a4 ;zpcolor+5
+	ldy #$a8 ;zpcolor+6
+	ift ?newfont > 0
+		ift ?turd % 4 == 0
+;:6		nop
+		els
+		sta wsync
+		eif
+	eif
+	sta colpf0
+	stx colpf0+1 ;zpcolor+5 colpf0+1
+	sty colpf0+2
+	mva #$10 colpf0+3 ;zpcolor+7 
 ?newfont++	
 .endr
-	lda #>vramfont+?poop
-?newfont = 0
+?newfont = 0 
 .endr
+
 	mwa #gameDli.dlib dli_ptr
-	lda #>vrfont2
-	sta chbase
-	plr
+	lda zpa
+	ldx zpx
+	ldy zpy
+	rti
+
+	
+dlib	
+
+	sta zpa
+	stx zpx
+	sty zpy
+
+?newfont = 0	
+.rept 10,#*4
+?poop = :1
+.rept 12,#
+?turd = :1
+
+/*	ift ?turd == 4
+	lda zpa
+	ldx zpx
+	ldy zpy
+	rti
+	eif*/
+	
+	lda #$14 ;zpcolor+4
+	ldx #$a4 ;zpcolor+5
+	ldy #$a8 ;zpcolor+6
+	
+	
+
+	ift ?newfont == 0
+		ift ?poop == 0	;very first font
+:18			nop
+		els
+:17			nop	;all other new fonts
+		eif
+
+	els
+	sta wsync
+	eif
+	
+	sta colpf0
+	ift ?newfont == 0
+	mva #>vrfont2+?poop chbase
+	eif
+	stx colpf0+1 ;zpcolor+1 colpf0+1
+	sty colpf0+2
+	
+	mva #$10 colpf0+3 ;zpcolor+7 
+	lda #$26 ;zpcolor
+	ldx #$12 ;zpcolor+1
+	ldy #$28 ;zpcolor+2
+	ift ?newfont > 0
+		ift ?turd % 4 == 0
+;:6		nop
+		els
+		sta wsync
+		eif
+	eif
+	sta colpf0
+	stx colpf0+1 ;zpcolor+5 colpf0+1
+	sty colpf0+2
+	mva #$92 colpf0+3
+?newfont++	
+.endr
+?newfont = 0 
+.endr
+	mwa #gameDli.dli dli_ptr
+	lda zpa
+	ldx zpx
+	ldy zpy
 	rti
 	
-dlib	phr
-	
+/*
 ?newfont = 999
 .rept 10,4+#*4
 ?poop = :1
@@ -231,6 +348,7 @@ dlib	phr
 	lda #$0a ;zpcolor+6
 	sta colpf0+2
 	eif
+	mva  #$3f colpf0+3 
 	
 	ldx #$f8 ;zpcolor+4
 	lda #$08 ;zpcolor+2
@@ -239,6 +357,7 @@ dlib	phr
 	stx colpf0
 	sta colpf0+2
 	sty colpf0+1
+	mva  #$e0 colpf0+3 
 ?newfont++
 .endr
 	lda #>vrfont2+?poop
@@ -249,79 +368,8 @@ dlib	phr
 	sta chbase
 	plr
 	rti	 	 
-	
-dli_orig	phr
-	mva #10 $c0 ;10
-	ldy poop:#>vramfont
-@	ldx #4*3
-@	lda c0:#$1a
-	sta wsync
-	sta colpf0
-	;sty chbase
-	mva c2:#$26 colpf0+2
-	mva c3:#$0a colpf0+3
-	mva c1:#$b6 colpf0+1
-	
-	lda c4:#$14
-	sta wsync
-	sta colpf0
-	mva c6:#$48 colpf0+2
-	mva c7:#$ba colpf0+3
-	mva c5:#$ba colpf0+1
+*/	
 
-	dex
-	bne @-
-	
-	;iny
-	;iny
-	;iny
-	;iny
-	dec $c0
-	bne @-1
-	
-	
-	
-	;lda ilace
-	;beq @+
-	;mwa #gameDli.dli2 dli_ptr
-@	plr
-	rti
-
-.local dli2
-	phr
-
-	mva #10 $c0
-	ldy #>vrfont2
-@	ldx #4*3
-@	lda c4:#$1a
-	sta wsync
-	sta colpf0
-	sty chbase
-	mva c6:#$26 colpf0+2
-	mva c7:#$0a colpf0+3
-	mva c5:#$04 colpf0+1
-	
-	lda c0:#$14
-	sta wsync
-	sta colpf0
-	mva c2:#$48 colpf0+2
-	mva c3:#$ba colpf0+3
-	mva c1:#$02 colpf0+1
-	dex
-	bne @-
-	
-	iny
-	iny
-	iny
-	iny
-	dec $c0
-	bne @-1
-	
-	mwa #gameDli.dli dli_ptr
-	
-	plr
-	rti
-.endl
 .endl
 	
 	
@@ -373,7 +421,7 @@ pptr	lsr @
 	ins 'pmdata.dat',0,4*128
 	org mypmbase-12-128
 	ins 'pmdata.dat',4*128,128
-	org $5000
+	org $6000
 vramfont	ins 'font.fnt'	
 .print "inserted font:",vramfont,"-",*-1
 vrfont2	;org $6000
@@ -398,7 +446,9 @@ ingame_dl
 	dta $80 ;f
 	dta $44
 addr	dta a(vram)
-	
+
+;	dta 4,4,4,4,2,2,4,2,2
+;:18	dta 4	
 :27	dta $4
 	dta $0
 	dta $41,a(ingame_dl)
