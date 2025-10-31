@@ -21,6 +21,7 @@ namespace AlterLinePictureAproximator
     using System.Security;
     using System.Security.Cryptography.X509Certificates;
     using System.Text.Json.Serialization.Metadata;
+    using static AlterLinePictureAproximator.Form1;
 
     /*todo: dithering only in results
 
@@ -96,6 +97,11 @@ namespace AlterLinePictureAproximator
         //public byte[,,,,] customP24Match = new byte[256, 256, 256, 2, 2];
         //public long[,,,,] customP24MatchDist = new long[256, 256, 256, 2, 2];
 
+        // HEPA optimization fields
+        private int[,] hepaIgnoreMatrix;  // [color1 << 1, color2 << 1]
+        private int currentHepaLumaFilter = -1;
+        private int currentHepaChromaFilter = -1;
+        private int currentBrightnessMethod = -1;
 
         public class AlpaItem
         {
@@ -109,6 +115,85 @@ namespace AlterLinePictureAproximator
             public AlpaItem ShallowCopy()
             {
                 return (AlpaItem)this.MemberwiseClone();
+            }
+        }
+
+        public class AlpaCollection
+        {
+            private readonly List<AlpaItem> lineItems;
+            public int Height { get; }
+            public int ColorsPerLine { get; }
+
+            public AlpaCollection(int height, int colorsPerLine)
+            {
+                if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height), "Height must be positive");
+                if (colorsPerLine <= 0) throw new ArgumentOutOfRangeException(nameof(colorsPerLine), "Colors per line must be positive");
+
+                Height = height;
+                ColorsPerLine = colorsPerLine;
+                lineItems = new List<AlpaItem>(height);
+
+                // Initialize with default AlpaItems
+                for (int i = 0; i < height; i++)
+                {
+                    var item = new AlpaItem
+                    {
+                        Line0 = new byte[colorsPerLine],
+                        Line1 = new byte[colorsPerLine],
+                        Diff = long.MaxValue,
+                        Ppdiff = int.MaxValue
+                    };
+                    lineItems.Add(item);
+                }
+            }
+
+            public AlpaItem this[int line]
+            {
+                get
+                {
+                    if (line < 0 || line >= Height)
+                        throw new ArgumentOutOfRangeException(nameof(line), $"Line index must be between 0 and {Height - 1}");
+                    return lineItems[line];
+                }
+                set
+                {
+                    if (line < 0 || line >= Height)
+                        throw new ArgumentOutOfRangeException(nameof(line), $"Line index must be between 0 and {Height - 1}");
+                    if (value == null) throw new ArgumentNullException(nameof(value));
+                    if (value.Line0.Length != ColorsPerLine || value.Line1.Length != ColorsPerLine)
+                        throw new ArgumentException("AlpaItem color arrays must match the collection's ColorsPerLine");
+
+                    lineItems[line] = value;
+                }
+            }
+
+            public IReadOnlyList<AlpaItem> GetAllItems() => lineItems.AsReadOnly();
+
+            public AlpaCollection ShallowCopy()
+            {
+                var copy = new AlpaCollection(Height, ColorsPerLine);
+                for (int i = 0; i < Height; i++)
+                {
+                    copy.lineItems[i] = lineItems[i].ShallowCopy();
+                }
+                return copy;
+            }
+
+            // Helper method to get a specific color from a specific line
+            public byte GetColor(int line, int colorIndex, bool isLine1)
+            {
+                var item = this[line];
+                return isLine1 ? item.Line1[colorIndex] : item.Line0[colorIndex];
+            }
+
+            // Helper method to set a specific color in a specific line
+            public void SetColor(int line, int colorIndex, bool isLine1, byte value)
+            {
+                var item = this[line];
+                if (isLine1)
+                    item.Line1[colorIndex] = value;
+                else
+                    item.Line0[colorIndex] = value;
             }
         }
 
@@ -130,12 +215,12 @@ namespace AlterLinePictureAproximator
             trackBarSaturation.Value = 100;
 
             LoadPalette();
+            comboBoxLightness.SelectedIndex = 0;
+            comboBoxLightness.Tag = 0;  //previous value
             CreatePal(comboBoxAverMethod.SelectedIndex);
             comboBoxDistance.SelectedIndex = 0;
             comboBoxDither.SelectedIndex = 0;
             comboBoxAverMethod.SelectedIndex = 0;
-            comboBoxLightness.SelectedIndex = 0;
-            comboBoxLightness.Tag = 0;  //previous value
             comboBoxCharsPerLine.SelectedIndex = 0; //preselect 32 chars narrow width
             ApplyImageAdjustments();
             ReduceColors();
@@ -336,13 +421,101 @@ namespace AlterLinePictureAproximator
             }
         }
 
+        private int UpdateHepaIgnoreMatrix()
+        {
+            // Only update if HEPA is enabled and settings have changed
+            if (!checkBoxHepa.Checked)
+            {
+                // If HEPA is disabled, set all colors to be considered (1)
+                hepaIgnoreMatrix = null;
+                return -1;
+            }
+
+            int hepaLumaFilter = (int)numericUpDownHepaLuma.Value;
+            int hepaChromaFilter = (int)numericUpDownHepaChroma.Value;
+            int brightnessMethod = comboBoxLightness.SelectedIndex;
+
+            // Check if we need to update the matrix
+            if (hepaIgnoreMatrix != null &&
+                currentHepaLumaFilter == hepaLumaFilter &&
+                currentHepaChromaFilter == hepaChromaFilter &&
+                currentBrightnessMethod == brightnessMethod)
+            {
+                return -1; // No changes needed
+            }
+
+            // Update current settings
+            currentHepaLumaFilter = hepaLumaFilter;
+            currentHepaChromaFilter = hepaChromaFilter;
+            currentBrightnessMethod = brightnessMethod;
+
+            // Initialize the matrix (256 colors, 256 colors)
+            hepaIgnoreMatrix = new int[256,256];
+
+            // Pre-calculate HEPA matrix for all color combinations
+            int possibleColors = 0;
+            for (int c1 = 0; c1 < 256; c1++)
+            {
+                for (int c2 = 0; c2 < 256; c2++)
+                {
+                    //if colors match, it is automatically allowed
+                    if (c1 == c2)
+                    {
+                        hepaIgnoreMatrix[c1, c2] = 1;
+                        possibleColors++;
+                        continue;
+                    }
+
+                    int loopingColorDifference = Math.Min(Math.Abs((c1 / 16) - (c2 / 16)), 16 - (Math.Abs((c1 / 16) - (c2 / 16))));
+                    //if chroma difference is too big, automatically forbid
+                    if (loopingColorDifference > hepaChromaFilter)
+                    {
+                        hepaIgnoreMatrix[c1, c2] = 0;
+                        continue;
+                    }
+
+                    int cellValue = 0;
+                    //https://stackoverflow.com/questions/596216/formula-to-determine-perceived-brightness-of-rgb-color
+                    switch (brightnessMethod)
+                    {
+                        // atari color palette difference in low nibble
+                        case 0:
+                            cellValue = (Math.Abs((c1 % 16) - (c2 % 16)) <= hepaLumaFilter) ? 1 : 0;
+                            break;
+                        case 1: //(0.2126*R + 0.7152*G + 0.0722*B)
+                            double lum0 = atariPalRgb[c1 * 3] * 0.2126 +
+                                          atariPalRgb[c1 * 3 + 1] * 0.7152 +
+                                          atariPalRgb[c1 * 3 + 2] * 0.0722;
+                            double lum1 = atariPalRgb[c2 * 3] * 0.2126 +
+                                          atariPalRgb[c2 * 3 + 1] * 0.7152 +
+                                          atariPalRgb[c2 * 3 + 2] * 0.0722;
+                            cellValue = (Math.Abs((int)(lum0 - lum1)) <= hepaLumaFilter) ? 1 : 0;
+                            break;
+                        case 2:
+                            cellValue = (Math.Abs((int)(GetLStar(c1) - GetLStar(c2))) <= hepaLumaFilter) ? 1 : 0;
+                            break;
+                        default:
+                            cellValue = 0;
+                            break;
+                    }
+                    hepaIgnoreMatrix[c1, c2] = cellValue;
+                    if (cellValue == 1) possibleColors++;
+                }
+            }
+            return possibleColors / 8; //a x b == b x a .. so only half
+        }
+
         private void CreatePal(int method, bool noDraw = false)
         {
-            //int[,] hepaMatrix = new int[COLORS * COLORS, 2];   //color-ignore matrix based on the HEPA filtering
-            int hepaLumaFilter = checkBoxHepa.Checked ? (int)numericUpDownHepaLuma.Value : (int)numericUpDownHepaLuma.Maximum;
-            int hepaChromaFilter = checkBoxHepa.Checked ? (int)numericUpDownHepaChroma.Value : 15;
+            int possibleColors = UpdateHepaIgnoreMatrix();
+            // Update the HEPA ignore matrix if needed
+            if (possibleColors > 0)
+            {
+                groupBox1.Text = $"HEPA filter - possible colors {possibleColors}";
+            }
             int brightnessMethod = comboBoxLightness.SelectedIndex;
             customColors = new Color[COLORS * COLORS, 2];
+            
             for (int z = 0; z < 2; z++)
             {
                 // Build local color lines without the removed index, avoiding List allocations
@@ -357,37 +530,27 @@ namespace AlterLinePictureAproximator
                     l1[w] = line1[ii];
                     w++;
                 }
+                
                 int index = 0;
                 for (int a = 0; a < COLORS; a++)
                 {
                     for (int b = 0; b < COLORS; b++)
                     {
                         customColors[index, z] = AverageColor(l0[a], l1[b], method);
-                        int loopingColorDifference = Math.Min(Math.Abs((l0[a] / 16) - (l1[b] / 16)), 16 - (Math.Abs((l0[a] / 16) - (l1[b] / 16))));
+                        
                         int hepaItem;
-
-                        //https://stackoverflow.com/questions/596216/formula-to-determine-perceived-brightness-of-rgb-color
-                        switch (brightnessMethod)
+                        if (hepaIgnoreMatrix != null && checkBoxHepa.Checked)
                         {
-                            case 0:
-                                hepaItem = (Math.Abs((l0[a] % 16) - (l1[b] % 16)) <= hepaLumaFilter) && (loopingColorDifference <= hepaChromaFilter) ? 1 : 0;
-                                break;
-                            case 1: //(0.2126*R + 0.7152*G + 0.0722*B)
-                                double lum0 = atariPalRgb[l0[a] * 3] * 0.2126 +
-                                              atariPalRgb[l0[a] * 3 + 1] * 0.7152 +
-                                              atariPalRgb[l0[a] * 3 + 2] * 0.0722;
-                                double lum1 = atariPalRgb[l1[b] * 3] * 0.2126 +
-                                              atariPalRgb[l1[b] * 3 + 1] * 0.7152 +
-                                              atariPalRgb[l1[b] * 3 + 2] * 0.0722;
-                                hepaItem = (Math.Abs((int)(lum0 - lum1)) <= hepaLumaFilter) && (loopingColorDifference <= hepaChromaFilter) ? 1 : 0;
-                                break;
-                            case 2:
-                                hepaItem = (Math.Abs((int)(GetLStar(l0[a]) - GetLStar(l1[b]))) <= hepaLumaFilter) && (loopingColorDifference <= hepaChromaFilter) ? 1 : 0;
-                                break;
-                            default:
-                                hepaItem = 0;
-                                break;
+                            // Use pre-calculated HEPA value from the matrix
+                            hepaItem = hepaIgnoreMatrix[l0[a], l1[b]];
                         }
+                        else
+                        {
+                            // If HEPA is disabled, all colors are considered different
+                            hepaItem = 1;
+                        }
+                        
+                        // Apply the HEPA filter along with other matrices
                         colorIgnoreMatrix[index, z, 0] = hepaItem & IGNORE_PMG_MATRIX5[index];
                         colorIgnoreMatrix[index, z, 1] = hepaItem & IGNORE_BG_MATRIX5[index];
                         colorIgnoreMatrix[index, z, 2] = hepaItem;
@@ -964,6 +1127,54 @@ namespace AlterLinePictureAproximator
         private void CheckBoxUseDither_CheckedChanged(object sender, EventArgs e)
         {
             Dither = checkBoxUseDither.Checked;
+            if (checkBoxAutoGenerate.Checked)
+                ButtonGenerate_Click(this, null);
+        }
+
+        private void checkBoxHepa_CheckedChanged(object sender, EventArgs e)
+        {
+            numericUpDownHepaChroma.Enabled = checkBoxHepa.Checked;
+            numericUpDownHepaLuma.Enabled = checkBoxHepa.Checked;
+            comboBoxLightness.Enabled = checkBoxHepa.Checked;
+            
+            // Force recalculation of HEPA matrix
+            currentHepaLumaFilter = -1;
+            currentHepaChromaFilter = -1;
+            currentBrightnessMethod = -1;
+            
+            if (checkBoxAutoGenerate.Checked)
+                ButtonGenerate_Click(this, null);
+        }
+
+        private void comboBoxLightness_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // Only process if the value actually changed
+            if (comboBoxLightness.SelectedIndex != (int?)comboBoxLightness.Tag)
+            {
+                comboBoxLightness.Tag = comboBoxLightness.SelectedIndex;
+                
+                // Force recalculation of HEPA matrix
+                currentBrightnessMethod = -1;
+                
+                if (checkBoxAutoGenerate.Checked)
+                    ButtonGenerate_Click(this, null);
+            }
+        }
+
+        private void numericUpDownHepaLuma_ValueChanged(object sender, EventArgs e)
+        {
+            // Force recalculation of HEPA matrix
+            currentHepaLumaFilter = -1;
+            
+            if (checkBoxAutoGenerate.Checked)
+                ButtonGenerate_Click(this, null);
+        }
+
+        private void numericUpDownHepaChroma_ValueChanged(object sender, EventArgs e)
+        {
+            // Force recalculation of HEPA matrix
+            currentHepaChromaFilter = -1;
+            
             if (checkBoxAutoGenerate.Checked)
                 ButtonGenerate_Click(this, null);
         }
