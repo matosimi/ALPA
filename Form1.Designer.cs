@@ -45,6 +45,7 @@ namespace AlterLinePictureAproximator
             pictureBoxResult = new PictureBoxWithInterpolationMode();
             pictureBoxMasks = new PictureBoxWithInterpolationMode();
             pictureBoxResultLines = new PictureBoxWithInterpolationMode();
+            pictureBoxPaletteCollection = new PictureBoxWithInterpolationMode();
             groupBoxLSG = new GroupBox();
             labelG = new Label();
             labelS = new Label();
@@ -52,6 +53,12 @@ namespace AlterLinePictureAproximator
             trackBarSaturation = new TrackBar();
             trackBarGamma = new TrackBar();
             trackBarLightness = new TrackBar();
+            groupBoxDivide = new GroupBox();
+            labelDividerLength = new Label();
+            labelDividerStart = new Label();
+            checkBoxDividerEnabled = new CheckBox();
+            numericUpDownDividerLength = new NumericUpDown();
+            numericUpDownDividerStart = new NumericUpDown();
             buttonXex = new Button();
             checkBoxInterlace = new CheckBox();
             checkBoxAutoUpdate = new CheckBox();
@@ -99,10 +106,14 @@ namespace AlterLinePictureAproximator
             ((System.ComponentModel.ISupportInitialize)pictureBoxResult).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxMasks).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxResultLines).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxPaletteCollection).BeginInit();
             groupBoxLSG.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)trackBarSaturation).BeginInit();
             ((System.ComponentModel.ISupportInitialize)trackBarGamma).BeginInit();
             ((System.ComponentModel.ISupportInitialize)trackBarLightness).BeginInit();
+            groupBoxDivide.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)numericUpDownDividerLength).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)numericUpDownDividerStart).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownPopulation).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownGeneration).BeginInit();
             groupBox1.SuspendLayout();
@@ -222,7 +233,9 @@ namespace AlterLinePictureAproximator
             flowLayoutPanel1.Controls.Add(pictureBoxMasks);
             flowLayoutPanel1.Controls.Add(pictureBoxResultLines);
             flowLayoutPanel1.Controls.Add(pictureBoxIdealDither);
+            flowLayoutPanel1.Controls.Add(pictureBoxPaletteCollection);
             flowLayoutPanel1.Controls.Add(groupBoxLSG);
+            flowLayoutPanel1.Controls.Add(groupBoxDivide);
             flowLayoutPanel1.Dock = DockStyle.Fill;
             flowLayoutPanel1.Location = new Point(0, 0);
             flowLayoutPanel1.Margin = new Padding(4, 5, 4, 5);
@@ -289,6 +302,18 @@ namespace AlterLinePictureAproximator
             pictureBoxResultLines.TabIndex = 16;
             pictureBoxResultLines.TabStop = false;
             toolTip1.SetToolTip(pictureBoxResultLines, "Result without blending");
+            // 
+            // pictureBoxPaletteCollection
+            // 
+            pictureBoxPaletteCollection.BackColor = Color.FromArgb(255, 128, 0);
+            pictureBoxPaletteCollection.Location = new Point(652, 5);
+            pictureBoxPaletteCollection.Margin = new Padding(4, 5, 4, 5);
+            pictureBoxPaletteCollection.Name = "pictureBoxPaletteCollection";
+            pictureBoxPaletteCollection.Size = new Size(100, 80);
+            pictureBoxPaletteCollection.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBoxPaletteCollection.TabIndex = 51;
+            pictureBoxPaletteCollection.TabStop = false;
+            toolTip1.SetToolTip(pictureBoxPaletteCollection, "Palette Collection");
             // 
             // groupBoxLSG
             // 
@@ -370,6 +395,71 @@ namespace AlterLinePictureAproximator
             trackBarLightness.TabIndex = 47;
             trackBarLightness.Value = 10;
             trackBarLightness.Scroll += AdjustmentControls_Changed;
+            // 
+            // groupBoxDivide
+            // 
+            groupBoxDivide.Controls.Add(labelDividerLength);
+            groupBoxDivide.Controls.Add(labelDividerStart);
+            groupBoxDivide.Controls.Add(checkBoxDividerEnabled);
+            groupBoxDivide.Controls.Add(numericUpDownDividerLength);
+            groupBoxDivide.Controls.Add(numericUpDownDividerStart);
+            groupBoxDivide.Location = new Point(391, 93);
+            groupBoxDivide.Name = "groupBoxDivide";
+            groupBoxDivide.Size = new Size(300, 211);
+            groupBoxDivide.TabIndex = 50;
+            groupBoxDivide.TabStop = false;
+            groupBoxDivide.Text = "Vertical Divider";
+            // 
+            // labelDividerLength
+            // 
+            labelDividerLength.AutoSize = true;
+            labelDividerLength.Location = new Point(7, 114);
+            labelDividerLength.Margin = new Padding(4, 0, 4, 0);
+            labelDividerLength.Name = "labelDividerLength";
+            labelDividerLength.Size = new Size(70, 25);
+            labelDividerLength.TabIndex = 46;
+            labelDividerLength.Text = "Length:";
+            // 
+            // labelDividerStart
+            // 
+            labelDividerStart.AutoSize = true;
+            labelDividerStart.Location = new Point(7, 70);
+            labelDividerStart.Margin = new Padding(4, 0, 4, 0);
+            labelDividerStart.Name = "labelDividerStart";
+            labelDividerStart.Size = new Size(52, 25);
+            labelDividerStart.TabIndex = 45;
+            labelDividerStart.Text = "Start:";
+            // 
+            // checkBoxDividerEnabled
+            // 
+            checkBoxDividerEnabled.AutoSize = true;
+            checkBoxDividerEnabled.Location = new Point(7, 30);
+            checkBoxDividerEnabled.Margin = new Padding(4, 5, 4, 5);
+            checkBoxDividerEnabled.Name = "checkBoxDividerEnabled";
+            checkBoxDividerEnabled.Size = new Size(101, 29);
+            checkBoxDividerEnabled.TabIndex = 44;
+            checkBoxDividerEnabled.Text = "Enabled";
+            checkBoxDividerEnabled.UseVisualStyleBackColor = true;
+            // 
+            // numericUpDownDividerLength
+            // 
+            numericUpDownDividerLength.Location = new Point(79, 112);
+            numericUpDownDividerLength.Margin = new Padding(4, 5, 4, 5);
+            numericUpDownDividerLength.Maximum = new decimal(new int[] { 224, 0, 0, 0 });
+            numericUpDownDividerLength.Name = "numericUpDownDividerLength";
+            numericUpDownDividerLength.Size = new Size(81, 31);
+            numericUpDownDividerLength.TabIndex = 43;
+            numericUpDownDividerLength.Value = new decimal(new int[] { 8, 0, 0, 0 });
+            // 
+            // numericUpDownDividerStart
+            // 
+            numericUpDownDividerStart.Location = new Point(79, 68);
+            numericUpDownDividerStart.Margin = new Padding(4, 5, 4, 5);
+            numericUpDownDividerStart.Maximum = new decimal(new int[] { 224, 0, 0, 0 });
+            numericUpDownDividerStart.Name = "numericUpDownDividerStart";
+            numericUpDownDividerStart.Size = new Size(81, 31);
+            numericUpDownDividerStart.TabIndex = 42;
+            numericUpDownDividerStart.Value = new decimal(new int[] { 8, 0, 0, 0 });
             // 
             // buttonXex
             // 
@@ -590,8 +680,6 @@ namespace AlterLinePictureAproximator
             // checkBoxHepa
             // 
             checkBoxHepa.AutoSize = true;
-            checkBoxHepa.Checked = true;
-            checkBoxHepa.CheckState = CheckState.Checked;
             checkBoxHepa.Location = new Point(14, 32);
             checkBoxHepa.Margin = new Padding(4, 5, 4, 5);
             checkBoxHepa.Name = "checkBoxHepa";
@@ -839,11 +927,16 @@ namespace AlterLinePictureAproximator
             ((System.ComponentModel.ISupportInitialize)pictureBoxResult).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxMasks).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxResultLines).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxPaletteCollection).EndInit();
             groupBoxLSG.ResumeLayout(false);
             groupBoxLSG.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)trackBarSaturation).EndInit();
             ((System.ComponentModel.ISupportInitialize)trackBarGamma).EndInit();
             ((System.ComponentModel.ISupportInitialize)trackBarLightness).EndInit();
+            groupBoxDivide.ResumeLayout(false);
+            groupBoxDivide.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)numericUpDownDividerLength).EndInit();
+            ((System.ComponentModel.ISupportInitialize)numericUpDownDividerStart).EndInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownPopulation).EndInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownGeneration).EndInit();
             groupBox1.ResumeLayout(false);
@@ -924,5 +1017,12 @@ namespace AlterLinePictureAproximator
         private Label labelS;
         private Label labelL;
         private CheckBox checkBoxHalfWidthFallback;
+        private GroupBox groupBoxDivide;
+        private NumericUpDown numericUpDownDividerStart;
+        private NumericUpDown numericUpDownDividerLength;
+        private Label labelDividerLength;
+        private Label labelDividerStart;
+        private CheckBox checkBoxDividerEnabled;
+        private PictureBoxWithInterpolationMode pictureBoxPaletteCollection;
     }
 }

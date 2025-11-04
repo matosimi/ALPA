@@ -457,9 +457,7 @@ ingame_dl
 	dta $44
 addr	dta a(vram)
 
-;	dta 4,4,4,4,2,2,4,2,2
-;:18	dta 4	
-:27	dta $4
+:27	dta 4
 	dta $0
 	dta $41,a(ingame_dl)
 
