@@ -79,7 +79,7 @@ namespace AlterLinePictureAproximator
         public byte[] bitmapPixelsDithered; //dithered bitmap pixels data in B-R-G order
         public byte[,,] srcChannelMatrix;   //matrix containing RGB channels of source image
         public int[,] bit8map;
-//        public int[,,] colorIgnoreMatrix = new int[COLORS * COLORS, 2, 3];
+        //        public int[,,] colorIgnoreMatrix = new int[COLORS * COLORS, 2, 3];
         public Color[] palette8 = new Color[256];
         public int[,,] customP8Match = new int[256, 2, 2];   //reset every custom palette change
         public long[,,] customP8MatchDist = new long[256, 2, 2];    ////reset every custom palette change
@@ -134,9 +134,11 @@ namespace AlterLinePictureAproximator
             public void RecalculateCustomColors(byte[] atariPalRgb, int averagingMethod, int colorsPerLine, bool useHepa)
             {
                 if (Line0 == null || Line1 == null) return;
-                
+
                 BlendedColors = new Color[colorsPerLine * colorsPerLine, 2];
                 ColorIgnoreMatrix = new int[colorsPerLine * colorsPerLine, 2, 3];
+                Cline0 = new Color[colorsPerLine, 2];
+                Cline1 = new Color[colorsPerLine, 2];
                 for (int z = 0; z < 2; z++)
                 {
                     // Build local color lines without the removed index
@@ -154,7 +156,7 @@ namespace AlterLinePictureAproximator
                         Cline1[w, z] = AtariColorToColor(l1[w]);
                         w++;
                     }
-                    
+
                     int index = 0;
                     for (int a = 0; a < colorsPerLine; a++)
                     {
@@ -316,7 +318,7 @@ namespace AlterLinePictureAproximator
         private void PopulateDefaultPalette(AlpaCollection alpaCollection)
         {
             if (alpaCollection == null) return;
-            
+
             // Populate AlpaCollection with default palette
             for (int y = 0; y < alpaCollection.Height; y++)
             {
@@ -352,13 +354,19 @@ namespace AlterLinePictureAproximator
             LoadPalette();
             comboBoxLightness.SelectedIndex = 0;
             comboBoxLightness.Tag = 0;  //previous value
-            CreatePal(comboBoxAverMethod.SelectedIndex);
             comboBoxDistance.SelectedIndex = 0;
             comboBoxDither.SelectedIndex = 0;
             comboBoxAverMethod.SelectedIndex = 0;
             comboBoxCharsPerLine.SelectedIndex = 0; //preselect 32 chars narrow width
             ApplyImageAdjustments();
             ReduceColors();
+            // Initialize myAlpaCollection before CreatePal is called
+            if (myAlpaCollection == null)
+            {
+                myAlpaCollection = new AlpaCollection(srcHeight / 2, COLORS + 1);
+                PopulateDefaultPalette(myAlpaCollection);
+            }
+            CreatePal(comboBoxAverMethod.SelectedIndex);
             pictureBoxResultLines.ZoomFactor = PictureBoxWithInterpolationMode.PictureBoxZoomFactor.x1;
             checkBoxAutoGenerate.Checked = true;
             ButtonGenerate_Click(this, null);
@@ -585,7 +593,7 @@ namespace AlterLinePictureAproximator
             currentBrightnessMethod = brightnessMethod;
 
             // Initialize the matrix (256 colors, 256 colors)
-            hepaIgnoreMatrix = new int[256,256];
+            hepaIgnoreMatrix = new int[256, 256];
 
             // Pre-calculate HEPA matrix for all color combinations
             int possibleColors = 0;
@@ -640,7 +648,7 @@ namespace AlterLinePictureAproximator
             return possibleColors / 8; //a x b == b x a .. so only half
         }
 
-        private void CreatePal(int method, bool noDraw = false)
+        private void CreatePal(int averagingMethod, bool noDraw = false)
         {
             int possibleColors = UpdateHepaIgnoreMatrix();
             // Update the HEPA ignore matrix if needed
@@ -649,15 +657,49 @@ namespace AlterLinePictureAproximator
                 groupBox1.Text = $"HEPA filter - possible colors {possibleColors}";
             }
             int brightnessMethod = comboBoxLightness.SelectedIndex;
-            
+
+            bool useHepa = checkBoxHepa.Checked;
+
             //drawing part and color count only when drawing is requested
             if (!noDraw)
             {
                 // Get the appropriate AlpaCollection item to display
-                Color[,] displayBlendedColors = myAlpaCollection[myAlpaCollection.Cursor].BlendedColors;
-                Color[,] displayCline0 = myAlpaCollection[myAlpaCollection.Cursor].Cline0;
-                Color[,] displayCline1 = myAlpaCollection[myAlpaCollection.Cursor].Cline1;
-                int[,,] displayIgnoreMatrix = myAlpaCollection[myAlpaCollection.Cursor].ColorIgnoreMatrix;
+                Color[,] displayBlendedColors;
+                Color[,] displayCline0;
+                Color[,] displayCline1;
+                int[,,] displayIgnoreMatrix;
+
+                if (myAlpaCollection == null || myAlpaCollection.Cursor < 0 || myAlpaCollection.Cursor >= myAlpaCollection.Height)
+                {
+                    // Fallback: create a temporary item with default colors
+                    var tempItem = new AlpaItem
+                    {
+                        Line0 = new byte[COLORS + 1],
+                        Line1 = new byte[COLORS + 1]
+                    };
+                    Array.Copy(line0default, tempItem.Line0, line0default.Length);
+                    Array.Copy(line1default, tempItem.Line1, line1default.Length);
+                    tempItem.RecalculateCustomColors(atariPalRgb, averagingMethod, COLORS, checkBoxHepa.Checked);
+
+                    displayBlendedColors = tempItem.BlendedColors;
+                    displayCline0 = tempItem.Cline0;
+                    displayCline1 = tempItem.Cline1;
+                    displayIgnoreMatrix = tempItem.ColorIgnoreMatrix;
+                }
+                else
+                {
+                    var item = myAlpaCollection[myAlpaCollection.Cursor];
+                    if (item.BlendedColors == null || item.Cline0 == null || item.Cline1 == null || item.ColorIgnoreMatrix == null)
+                    {
+                        // Recalculate if not initialized
+                        item.RecalculateCustomColors(atariPalRgb, averagingMethod, COLORS, checkBoxHepa.Checked);
+                    }
+
+                    displayBlendedColors = item.BlendedColors;
+                    displayCline0 = item.Cline0;
+                    displayCline1 = item.Cline1;
+                    displayIgnoreMatrix = item.ColorIgnoreMatrix;
+                }
 
                 List<Color> colors = new();
                 for (int z = 0; z < 2; z++)
@@ -682,64 +724,31 @@ namespace AlterLinePictureAproximator
                     {
                         for (int b = 0; b < COLORS; b++)
                         {
-                            g.FillRectangle(new SolidBrush(displayBlendedColors[a * COLORS + b, z]), new Rectangle(b * 16 + OFFSET * z, a * 16, 16, 16));
+                            int colorIndex = a * COLORS + b;
+                            Color color = displayBlendedColors[colorIndex, z];
+                            Rectangle rect = new Rectangle(b * 16 + OFFSET * z, a * 16, 16, 16);
+                            
+                            // Check if color is ignored (0 in ignore matrix) - use t=2 for general ignore check
+                            // Only check ignore matrix if HEPA is enabled, otherwise always false
+                            bool isIgnored = useHepa && displayIgnoreMatrix[colorIndex, z, 2] == 0;
+                            
+                            if (isIgnored)
+                            {
+                                // Use hatch brush for ignored colors (diagonal lines)
+                                using (HatchBrush hatchBrush = new HatchBrush(HatchStyle.LargeCheckerBoard, Color.White, color))
+                                {
+                                    g.FillRectangle(hatchBrush, rect);
+                                }
+                            }
+                            else
+                            {
+                                // Use solid brush for non-ignored colors
+                                g.FillRectangle(new SolidBrush(color), rect);
+                            }
                         }
                         g.FillRectangle(new SolidBrush(displayCline0[a, z]), new Rectangle(a * 16 + OFFSET * z, OFFSET, 16, 16));
                         g.FillRectangle(new SolidBrush(displayCline1[a, z]), new Rectangle(a * 16 + OFFSET * z, OFFSET + 16, 16, 16));
-                        /*// Display cline0 and cline1 colors
-                        // For a=0,1,2: display indices 0,1,2 directly
-                        // For a=3: display index 4
-                        // For a=4: display index 5 (the last color, 0x0e)
-                        int originalIndex = displayOrder[a];
-                        Color color0, color1;
-                        
-                        // Get colors from the appropriate source
-                        if (myAlpaCollection != null && displayCustomColors != localCustomColors)
-                        {
-                            // Using AlpaCollection item - get colors from original Line0/Line1
-                            int itemIndex = checkBoxDividerEnabled.Checked ? (int)numericUpDownDividerStart.Value : 0;
-                            if (itemIndex >= 0 && itemIndex < myAlpaCollection.Height)
-                            {
-                                var item = myAlpaCollection[itemIndex];
-                                if (originalIndex < item.Line0.Length && originalIndex < item.Line1.Length)
-                                {
-                                    color0 = AtariColorToColor(item.Line0[originalIndex]);
-                                    color1 = AtariColorToColor(item.Line1[originalIndex]);
-                                }
-                                else
-                                {
-                                    // Fallback to displayCline0/displayCline1 if available
-                                    int l0Index = a < COLORS ? a : COLORS - 1;
-                                    color0 = displayCline0[l0Index, z];
-                                    color1 = displayCline1[l0Index, z];
-                                }
-                            }
-                            else
-                            {
-                                int l0Index = a < COLORS ? a : COLORS - 1;
-                                color0 = displayCline0[l0Index, z];
-                                color1 = displayCline1[l0Index, z];
-                            }
-                        }
-                        else
-                        {
-                            // Using global palette - get colors from original line0/line1
-                            if (originalIndex < line0.Length && originalIndex < line1.Length)
-                            {
-                                color0 = AtariColorToColor(line0[originalIndex]);
-                                color1 = AtariColorToColor(line1[originalIndex]);
-                            }
-                            else
-                            {
-                                int l0Index = a < COLORS ? a : COLORS - 1;
-                                color0 = displayCline0[l0Index, z];
-                                color1 = displayCline1[l0Index, z];
-                            }
-                        }
 
-                        g.FillRectangle(new SolidBrush(color0), new Rectangle(a * 16 + OFFSET * z, OFFSET, 16, 16));
-                        g.FillRectangle(new SolidBrush(color1), new Rectangle(a * 16 + OFFSET * z, OFFSET + 16, 16, 16));
-                    */
                     }
                 }
                 pictureBoxPalette.Image = p;
@@ -826,8 +835,8 @@ namespace AlterLinePictureAproximator
                         for (int cy = 0; cy < 4; cy++)
                         {
                             // Get customColors from AlpaCollection based on line
-                            int lineIndex = y * 2 + cy / 2;
-                            Color[,] lineCustomColors = null;
+                            int lineIndex = y * 4 + cy;
+                            Color[,] lineBlendedColors = null;
                             if (myAlpaCollection != null && lineIndex < myAlpaCollection.Height)
                             {
                                 var item = myAlpaCollection[lineIndex];
@@ -835,9 +844,9 @@ namespace AlterLinePictureAproximator
                                 {
                                     item.RecalculateCustomColors(atariPalRgb, comboBoxAverMethod.SelectedIndex, COLORS, checkBoxHepa.Checked);
                                 }
-                                lineCustomColors = item.BlendedColors;
+                                lineBlendedColors = item.BlendedColors;
                             }
-                            if (lineCustomColors == null) continue; // Skip if no customColors available
+                            if (lineBlendedColors == null) continue; // Skip if no customColors available
 
                             // t=0 - pmg layer
                             long sum0 = 0;
@@ -849,15 +858,15 @@ namespace AlterLinePictureAproximator
                                 {
                                     int pixelIndex = (x * 4 + cx + (y * 4 + cy) * TargetWidth) * 3;
                                     Color desiredColor = Color.FromArgb(bitmapPixelsDithered[pixelIndex + 2], bitmapPixelsDithered[pixelIndex + 1], bitmapPixelsDithered[pixelIndex]);
-                                    (distance, index) = FindCustomClosest2(desiredColor, distanceFn, z, 0, lineCustomColors);
+                                    (distance, index) = FindCustomClosest2(desiredColor, distanceFn, z, 0, lineBlendedColors);
                                 }
                                 else if (UseReducedSource)
                                 {
-                                    (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceFn, z, 0, lineCustomColors);
+                                    (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceFn, z, 0, lineBlendedColors);
                                 }
                                 else
                                 {
-                                    (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceFn, z, 0, lineCustomColors);
+                                    (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceFn, z, 0, lineBlendedColors);
                                 }
                                 sum0 += distance * distance;
                                 bitmapCharDataIndexed[cx, cy, z, 0] = index;
@@ -872,15 +881,15 @@ namespace AlterLinePictureAproximator
                                 {
                                     int pixelIndex = (x * 4 + cx + (y * 4 + cy) * TargetWidth) * 3;
                                     Color desiredColor = Color.FromArgb(bitmapPixelsDithered[pixelIndex + 2], bitmapPixelsDithered[pixelIndex + 1], bitmapPixelsDithered[pixelIndex]);
-                                    (distance, index) = FindCustomClosest2(desiredColor, distanceFn, z, 1, lineCustomColors);
+                                    (distance, index) = FindCustomClosest2(desiredColor, distanceFn, z, 1, lineBlendedColors);
                                 }
                                 else if (UseReducedSource)
                                 {
-                                    (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceFn, z, 1, lineCustomColors);
+                                    (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceFn, z, 1, lineBlendedColors);
                                 }
                                 else
                                 {
-                                    (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceFn, z, 1, lineCustomColors);
+                                    (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceFn, z, 1, lineBlendedColors);
                                 }
                                 sum1 += distance * distance;
                                 bitmapCharDataIndexed[cx, cy, z, 1] = index;
@@ -1332,52 +1341,59 @@ namespace AlterLinePictureAproximator
                 ButtonGenerate_Click(this, null);
         }
 
-        private void checkBoxHepa_CheckedChanged(object sender, EventArgs e)
+        private void CheckBoxHepa_CheckedChanged(object sender, EventArgs e)
         {
             numericUpDownHepaChroma.Enabled = checkBoxHepa.Checked;
             numericUpDownHepaLuma.Enabled = checkBoxHepa.Checked;
             comboBoxLightness.Enabled = checkBoxHepa.Checked;
-            
+
             // Force recalculation of HEPA matrix
             currentHepaLumaFilter = -1;
             currentHepaChromaFilter = -1;
             currentBrightnessMethod = -1;
-            
+
             if (checkBoxAutoGenerate.Checked)
                 ButtonGenerate_Click(this, null);
+            else
+                CreatePal(comboBoxAverMethod.SelectedIndex);
         }
 
-        private void comboBoxLightness_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            // Only process if the value actually changed
-            if (comboBoxLightness.SelectedIndex != (int?)comboBoxLightness.Tag)
-            {
-                comboBoxLightness.Tag = comboBoxLightness.SelectedIndex;
-                
-                // Force recalculation of HEPA matrix
-                currentBrightnessMethod = -1;
-                
-                if (checkBoxAutoGenerate.Checked)
-                    ButtonGenerate_Click(this, null);
-            }
-        }
-
-        private void numericUpDownHepaLuma_ValueChanged(object sender, EventArgs e)
+        private void NumericUpDownHepaLuma_ValueChanged(object sender, EventArgs e)
         {
             // Force recalculation of HEPA matrix
             currentHepaLumaFilter = -1;
-            
+
+            // Invalidate cached colors to force recalculation
+            if (myAlpaCollection != null && myAlpaCollection.Cursor >= 0 && myAlpaCollection.Cursor < myAlpaCollection.Height)
+            {
+                var item = myAlpaCollection[myAlpaCollection.Cursor];
+                item.BlendedColors = null;
+                item.ColorIgnoreMatrix = null;
+            }
+
             if (checkBoxAutoGenerate.Checked)
                 ButtonGenerate_Click(this, null);
+            else
+                CreatePal(comboBoxAverMethod.SelectedIndex);
         }
 
-        private void numericUpDownHepaChroma_ValueChanged(object sender, EventArgs e)
+        private void NumericUpDownHepaChroma_ValueChanged(object sender, EventArgs e)
         {
             // Force recalculation of HEPA matrix
             currentHepaChromaFilter = -1;
-            
+
+            // Invalidate cached colors to force recalculation
+            if (myAlpaCollection != null && myAlpaCollection.Cursor >= 0 && myAlpaCollection.Cursor < myAlpaCollection.Height)
+            {
+                var item = myAlpaCollection[myAlpaCollection.Cursor];
+                item.BlendedColors = null;
+                item.ColorIgnoreMatrix = null;
+            }
+
             if (checkBoxAutoGenerate.Checked)
                 ButtonGenerate_Click(this, null);
+            else
+                CreatePal(comboBoxAverMethod.SelectedIndex);
         }
 
         private Bitmap ResizeSource()
@@ -1463,6 +1479,18 @@ namespace AlterLinePictureAproximator
                     }
                 }
                 CreatePal(comboBoxAverMethod.SelectedIndex, true);
+                /*
+                if (checkBoxDividerEnabled.Checked)
+                {
+                    UpdateAlpaCollectionForRange(myAlpaCollection, myAlpaCollection.Cursor, myAlpaCollection.Cursor + (int)numericUpDownDividerLength.Value);
+                }
+                else
+                {
+                    UpdateAlpaCollectionForRange(myAlpaCollection, myAlpaCollection.Cursor, myAlpaCollection.Height);
+                }
+                */
+                var (startY, endY) = GetVerticalRange();
+                UpdateAlpaCollectionForRange(myAlpaCollection, startY, endY);
 
                 long totalDiff;
                 int[,] bitmapDataIndexed;
@@ -1507,7 +1535,7 @@ namespace AlterLinePictureAproximator
         private void Centauri(int generations, int population)
         {
             var item = myAlpaCollection[myAlpaCollection.Cursor];
-            progressBarAI.Value = 0; 
+            progressBarAI.Value = 0;
             progressBarAI.Maximum = generations;
             //fix population not dividable by 4
             if (population % 4 != 0)
@@ -1549,14 +1577,14 @@ namespace AlterLinePictureAproximator
                 //line0 = alpaItems[0].line0;
                 //line1 = alpaItems[0].line1;
                 labelDiff.Text = $"Diff: {(int)alpaItems[0].Ppdiff}";
-                
+
                 // Update AlpaCollection when divider is unchecked to sync with global line0/line1
-                if (myAlpaCollection != null && !checkBoxDividerEnabled.Checked)
-                {
+                //if (myAlpaCollection != null && !checkBoxDividerEnabled.Checked)
+                //{
                     var (startY, endY) = GetVerticalRange();
                     UpdateAlpaCollectionForRange(myAlpaCollection, startY, endY);
-                }
-                
+                //}
+
                 if (checkBoxAutoUpdate.Checked && (bestDiff > alpaItems[0].Ppdiff)) //show progress
                 {
                     bestDiff = alpaItems[0].Ppdiff;
@@ -1690,7 +1718,7 @@ namespace AlterLinePictureAproximator
             int[] joint = { 0, 0, 0, 1, 1, 0, 0, 0, 1, 1 };   //defines which colors are joined(constant) between dlilines
 
             var item = myAlpaCollection[myAlpaCollection.Cursor];
-            
+
             if (e.Y > COLORS * 16)
             {
                 int line = (e.Y - COLORS * 16 - 1) / 16;
@@ -1725,16 +1753,16 @@ namespace AlterLinePictureAproximator
                             JOINED_COLORS[remap[index]] = JOINED_COLORS[remap[index]] == 0 ? 1 : 0;
                         break;
                 }
-
+                item.RecalculateCustomColors(atariPalRgb, comboBoxAverMethod.SelectedIndex, COLORS, checkBoxHepa.Checked);
                 CreatePal(comboBoxAverMethod.SelectedIndex);
-                
+
                 // Update AlpaCollection when divider is unchecked to sync with global line0/line1
                 if (myAlpaCollection != null && !checkBoxDividerEnabled.Checked)
                 {
                     var (startY, endY) = GetVerticalRange();
                     UpdateAlpaCollectionForRange(myAlpaCollection, startY, endY);
                 }
-                
+
                 if (checkBoxAutoUpdate.Checked)
                 {
                     (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, Dither);
@@ -1892,14 +1920,14 @@ namespace AlterLinePictureAproximator
                 var item = myAlpaCollection[myAlpaCollection.Cursor];
                 Array.Copy(alpaItems[listViewPopulation.SelectedIndices[0]].Line0, item.Line0, item.Line0.Length);
                 Array.Copy(alpaItems[listViewPopulation.SelectedIndices[0]].Line1, item.Line1, item.Line0.Length);
-                
+
                 // Update AlpaCollection when divider is unchecked to sync with global line0/line1
                 if (myAlpaCollection != null && !checkBoxDividerEnabled.Checked)
                 {
                     var (startY, endY) = GetVerticalRange();
                     UpdateAlpaCollectionForRange(myAlpaCollection, startY, endY);
                 }
-                
+
                 CreatePal(comboBoxAverMethod.SelectedIndex, false);
                 //DoConvert(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
                 //MixIt();
@@ -2086,10 +2114,10 @@ namespace AlterLinePictureAproximator
             int startY = (int)numericUpDownDividerStart.Value;
             int length = (int)numericUpDownDividerLength.Value;
             int endY = Math.Min(startY + length - 1, srcHeight / 2 - 1);
-            
+
             // Ensure startY is within bounds
             startY = Math.Max(0, Math.Min(startY, srcHeight / 2 - 1));
-            
+
             return (startY, endY);
         }
 
@@ -2141,30 +2169,30 @@ namespace AlterLinePictureAproximator
             UpdateAlpaCollectionForRange(myAlpaCollection, startY, endY);
             RedrawAlpaCollection();
 
-            CreatePal(comboBoxAverMethod.SelectedIndex, true);
+            CreatePal(comboBoxAverMethod.SelectedIndex);//,true);
             CreateIdealDitheredSolution(comboBoxDistance.SelectedIndex, comboBoxDither.SelectedIndex, (float)numericUpDownDitherStrength.Value / 10f);
-            ButtonAlpaCentauriInit_Click(this, null);
+            //ButtonAlpaCentauriInit_Click(this, null);
         }
 
         private void RedrawAlpaCollection()
         {
             if (myAlpaCollection == null) return;
             int lineLength = myAlpaCollection[0].Line0.Length;
-            int width = lineLength*2;
+            int width = lineLength * 2;
             int height = srcChannelMatrix.GetLength(1);
             Bitmap p = new Bitmap(width, height, PixelFormat.Format24bppRgb);
-            
+
             BitmapData bd = p.LockBits(new Rectangle(0, 0, p.Width, p.Height), ImageLockMode.WriteOnly, p.PixelFormat);
             IntPtr ptr = bd.Scan0;
             int stride = Math.Abs(bd.Stride);
             int size = stride * bd.Height;
             byte[] pixels = new byte[size];
-            
+
             for (int y = 0; y < height && y < myAlpaCollection.Height; y++)
             {
                 var item = myAlpaCollection[y];
                 int pixelOffset = y * stride;
-                
+
                 // Draw Line0 colors (left side)
                 for (int x = 0; x < item.Line0.Length; x++)
                 {
@@ -2177,7 +2205,7 @@ namespace AlterLinePictureAproximator
                         pixels[pixelIndex + 2] = color.R;
                     }
                 }
-                
+
                 // Draw Line1 colors (right side)
                 for (int x = 0; x < item.Line1.Length; x++)
                 {
@@ -2191,10 +2219,10 @@ namespace AlterLinePictureAproximator
                     }
                 }
             }
-            
+
             Marshal.Copy(pixels, 0, ptr, size);
             p.UnlockBits(bd);
-            
+
             pictureBoxPaletteCollection.Image = new Bitmap(p);
             // pictureBoxPaletteCollection.Size = p.Size;
         }
@@ -2234,6 +2262,14 @@ namespace AlterLinePictureAproximator
             numericUpDownHepaLuma.Maximum = brMax;
             numericUpDownHepaLuma.Value = Math.Min(brVal, brMax);
             comboBoxLightness.Tag = comboBoxLightness.SelectedIndex;
+
+            // Force recalculation of HEPA matrix
+            currentBrightnessMethod = -1;
+
+            if (checkBoxAutoGenerate.Checked)
+                ButtonGenerate_Click(this, null);
+            else
+                CreatePal(comboBoxAverMethod.SelectedIndex);
         }
 
         private void ComboBoxDither_SelectedIndexChanged(object sender, EventArgs e)
@@ -2280,6 +2316,18 @@ namespace AlterLinePictureAproximator
             pictureBoxSource.Size = pictureBoxSource.Image.Size;
             labelOutputSize.Text = $"Output: {TargetWidth * 2} * {srcHeight} ({srcHeightChar})";
             ApplyImageAdjustments();
+        }
+
+        private void NumericUpDownDividerStart_ValueChanged(object sender, EventArgs e)
+        {
+            myAlpaCollection.Cursor = checkBoxDividerEnabled.Checked ? (int)numericUpDownDividerStart.Value : 0;
+            CreatePal(comboBoxAverMethod.SelectedIndex);
+        }
+
+        private void CheckBoxDividerEnabled_CheckedChanged(object sender, EventArgs e)
+        {
+            myAlpaCollection.Cursor = checkBoxDividerEnabled.Checked ? (int)numericUpDownDividerStart.Value : 0;
+            CreatePal(comboBoxAverMethod.SelectedIndex);
         }
     }
 

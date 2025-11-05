@@ -440,6 +440,7 @@ namespace AlterLinePictureAproximator
             checkBoxDividerEnabled.TabIndex = 44;
             checkBoxDividerEnabled.Text = "Enabled";
             checkBoxDividerEnabled.UseVisualStyleBackColor = true;
+            checkBoxDividerEnabled.CheckedChanged += CheckBoxDividerEnabled_CheckedChanged;
             // 
             // numericUpDownDividerLength
             // 
@@ -460,6 +461,7 @@ namespace AlterLinePictureAproximator
             numericUpDownDividerStart.Size = new Size(81, 31);
             numericUpDownDividerStart.TabIndex = 42;
             numericUpDownDividerStart.Value = new decimal(new int[] { 8, 0, 0, 0 });
+            numericUpDownDividerStart.ValueChanged += NumericUpDownDividerStart_ValueChanged;
             // 
             // buttonXex
             // 
@@ -687,6 +689,7 @@ namespace AlterLinePictureAproximator
             checkBoxHepa.TabIndex = 42;
             checkBoxHepa.Text = "Enable HEPA";
             checkBoxHepa.UseVisualStyleBackColor = true;
+            checkBoxHepa.CheckedChanged += CheckBoxHepa_CheckedChanged;
             // 
             // numericUpDownHepaLuma
             // 
@@ -697,6 +700,7 @@ namespace AlterLinePictureAproximator
             numericUpDownHepaLuma.Size = new Size(81, 31);
             numericUpDownHepaLuma.TabIndex = 41;
             numericUpDownHepaLuma.Value = new decimal(new int[] { 2, 0, 0, 0 });
+            numericUpDownHepaLuma.ValueChanged += NumericUpDownHepaLuma_ValueChanged;
             // 
             // label2
             // 
@@ -717,6 +721,7 @@ namespace AlterLinePictureAproximator
             numericUpDownHepaChroma.Size = new Size(81, 31);
             numericUpDownHepaChroma.TabIndex = 38;
             numericUpDownHepaChroma.Value = new decimal(new int[] { 15, 0, 0, 0 });
+            numericUpDownHepaChroma.ValueChanged += NumericUpDownHepaChroma_ValueChanged;
             // 
             // numericUpDownDitherStrength
             // 
