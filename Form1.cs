@@ -1479,16 +1479,6 @@ namespace AlterLinePictureAproximator
                     }
                 }
                 CreatePal(comboBoxAverMethod.SelectedIndex, true);
-                /*
-                if (checkBoxDividerEnabled.Checked)
-                {
-                    UpdateAlpaCollectionForRange(myAlpaCollection, myAlpaCollection.Cursor, myAlpaCollection.Cursor + (int)numericUpDownDividerLength.Value);
-                }
-                else
-                {
-                    UpdateAlpaCollectionForRange(myAlpaCollection, myAlpaCollection.Cursor, myAlpaCollection.Height);
-                }
-                */
                 var (startY, endY) = GetVerticalRange();
                 UpdateAlpaCollectionForRange(myAlpaCollection, startY, endY);
 
@@ -1642,7 +1632,12 @@ namespace AlterLinePictureAproximator
                         Mutate(ai.Line0, ai.Line1, ai);
                     Array.Copy(ai.Line0, item.Line0, item.Line0.Length);
                     Array.Copy(ai.Line1, item.Line1, item.Line1.Length);
-                    CreatePal(averageMethod, true);
+                    
+                    // Update the range of lines that will be evaluated by CalcDiff2
+                    // This ensures all lines have the same mutated palette for consistent evaluation
+                    var (startY, endY) = GetVerticalRange();
+                    UpdateAlpaCollectionForRange(myAlpaCollection, startY, endY);
+                    
                     long totalDiff = CalcDiff2(distanceMethod, false).totalDiff;
 
                     ai.Diff = totalDiff;
@@ -1651,8 +1646,9 @@ namespace AlterLinePictureAproximator
                 }
             List<AlpaItem> sorted = alpaItems.OrderBy(d => d.Diff).ToList();
             int amount = alpaItems.Count;
-            if (amount > population / 4)
-                sorted.RemoveRange(population / 4 - 1, amount - ((population / 4) - 1));
+            int keepCount = population / 4;
+            if (amount > keepCount)
+                sorted.RemoveRange(keepCount, amount - keepCount);
             sorted = sorted.DistinctBy(d => d.Diff).ToList();
             alpaItems = sorted;
 
@@ -1917,9 +1913,10 @@ namespace AlterLinePictureAproximator
         {
             if (listViewPopulation.SelectedIndices.Count > 0)
             {
+                int selectedIndex = listViewPopulation.SelectedIndices[0];
                 var item = myAlpaCollection[myAlpaCollection.Cursor];
-                Array.Copy(alpaItems[listViewPopulation.SelectedIndices[0]].Line0, item.Line0, item.Line0.Length);
-                Array.Copy(alpaItems[listViewPopulation.SelectedIndices[0]].Line1, item.Line1, item.Line0.Length);
+                Array.Copy(alpaItems[selectedIndex].Line0, item.Line0, item.Line0.Length);
+                Array.Copy(alpaItems[selectedIndex].Line1, item.Line1, item.Line1.Length);
 
                 // Update AlpaCollection when divider is unchecked to sync with global line0/line1
                 if (myAlpaCollection != null && !checkBoxDividerEnabled.Checked)
@@ -1933,6 +1930,11 @@ namespace AlterLinePictureAproximator
                 //MixIt();
                 (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, Dither);
                 Redraw(bitmapDataIndexed, charMask, pmgMask);
+                
+                // Show both stored and recalculated values for debugging
+                int storedPpdiff = alpaItems[selectedIndex].Ppdiff;
+                int recalculatedPpdiff = (int)(totalDiff / totalPixels);
+                labelDiff.Text = $"Diff: {recalculatedPpdiff} (stored: {storedPpdiff})";
             }
         }
 
@@ -2169,7 +2171,7 @@ namespace AlterLinePictureAproximator
             UpdateAlpaCollectionForRange(myAlpaCollection, startY, endY);
             RedrawAlpaCollection();
 
-            CreatePal(comboBoxAverMethod.SelectedIndex);//,true);
+            CreatePal(comboBoxAverMethod.SelectedIndex,true);
             CreateIdealDitheredSolution(comboBoxDistance.SelectedIndex, comboBoxDither.SelectedIndex, (float)numericUpDownDitherStrength.Value / 10f);
             //ButtonAlpaCentauriInit_Click(this, null);
         }

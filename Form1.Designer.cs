@@ -153,7 +153,7 @@ namespace AlterLinePictureAproximator
             // pictureBoxIdealDither
             // 
             pictureBoxIdealDither.BackColor = Color.Fuchsia;
-            pictureBoxIdealDither.Location = new Point(544, 5);
+            pictureBoxIdealDither.Location = new Point(652, 5);
             pictureBoxIdealDither.Margin = new Padding(4, 5, 4, 5);
             pictureBoxIdealDither.Name = "pictureBoxIdealDither";
             pictureBoxIdealDither.Size = new Size(100, 80);
@@ -230,10 +230,10 @@ namespace AlterLinePictureAproximator
             flowLayoutPanel1.Controls.Add(pictureBoxSrcData);
             flowLayoutPanel1.Controls.Add(pictureBoxSrcReduced);
             flowLayoutPanel1.Controls.Add(pictureBoxResult);
+            flowLayoutPanel1.Controls.Add(pictureBoxPaletteCollection);
             flowLayoutPanel1.Controls.Add(pictureBoxMasks);
             flowLayoutPanel1.Controls.Add(pictureBoxResultLines);
             flowLayoutPanel1.Controls.Add(pictureBoxIdealDither);
-            flowLayoutPanel1.Controls.Add(pictureBoxPaletteCollection);
             flowLayoutPanel1.Controls.Add(groupBoxLSG);
             flowLayoutPanel1.Controls.Add(groupBoxDivide);
             flowLayoutPanel1.Dock = DockStyle.Fill;
@@ -282,7 +282,7 @@ namespace AlterLinePictureAproximator
             // pictureBoxMasks
             // 
             pictureBoxMasks.BackColor = Color.Lime;
-            pictureBoxMasks.Location = new Point(328, 5);
+            pictureBoxMasks.Location = new Point(436, 5);
             pictureBoxMasks.Margin = new Padding(4, 5, 4, 5);
             pictureBoxMasks.Name = "pictureBoxMasks";
             pictureBoxMasks.Size = new Size(100, 80);
@@ -294,7 +294,7 @@ namespace AlterLinePictureAproximator
             // pictureBoxResultLines
             // 
             pictureBoxResultLines.BackColor = Color.Yellow;
-            pictureBoxResultLines.Location = new Point(436, 5);
+            pictureBoxResultLines.Location = new Point(544, 5);
             pictureBoxResultLines.Margin = new Padding(4, 5, 4, 5);
             pictureBoxResultLines.Name = "pictureBoxResultLines";
             pictureBoxResultLines.Size = new Size(100, 80);
@@ -306,7 +306,7 @@ namespace AlterLinePictureAproximator
             // pictureBoxPaletteCollection
             // 
             pictureBoxPaletteCollection.BackColor = Color.FromArgb(255, 128, 0);
-            pictureBoxPaletteCollection.Location = new Point(652, 5);
+            pictureBoxPaletteCollection.Location = new Point(328, 5);
             pictureBoxPaletteCollection.Margin = new Padding(4, 5, 4, 5);
             pictureBoxPaletteCollection.Name = "pictureBoxPaletteCollection";
             pictureBoxPaletteCollection.Size = new Size(100, 80);
