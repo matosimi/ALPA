@@ -81,10 +81,16 @@ namespace AlterLinePictureAproximator
         public int[,] bit8map;
         //        public int[,,] colorIgnoreMatrix = new int[COLORS * COLORS, 2, 3];
         public Color[] palette8 = new Color[256];
-        public int[,,] customP8Match = new int[256, 2, 2];   //reset every custom palette change
-        public long[,,] customP8MatchDist = new long[256, 2, 2];    ////reset every custom palette change
-        public List<AlpaItem> alpaItems = new List<AlpaItem>();
+        //public int[,,] customP8Match = new int[256, 2, 2];   //reset every custom palette change
+        //public long[,,] customP8MatchDist = new long[256, 2, 2];    ////reset every custom palette change
+        public Dictionary<int, List<AlpaItem>> charBlockPopulations = new Dictionary<int, List<AlpaItem>>();  // Per 4-line block populations (key = block index = lineY / 4)
+        public List<AlpaItem> alpaItems = new List<AlpaItem>();  // Temporary for compatibility
         private AlpaCollection myAlpaCollection;
+        // Global colors that must be constant across entire image
+        private byte globalBackgroundLine0 = 0x00;  // colbak for line0 (index 4)
+        private byte globalBackgroundLine1 = 0x00;  // colbak for line1 (index 4)
+        private byte globalPMGLine0 = 0x0e;         // colpm for line0 (index 5)
+        private byte globalPMGLine1 = 0x0e;         // colpm for line1 (index 5)
         public Random rand = new Random();
         public int CharsPerLine => comboBoxCharsPerLine.SelectedIndex == 0 ? 32 : 40;
         public int TargetWidth => CharsPerLine * 4;
@@ -239,7 +245,6 @@ namespace AlterLinePictureAproximator
             private readonly List<AlpaItem> lineItems;
             public int Height { get; }
             public int ColorsPerLine { get; }
-            public int Cursor { get; set; }
 
             public AlpaCollection(int height, int colorsPerLine)
             {
@@ -262,7 +267,6 @@ namespace AlterLinePictureAproximator
                     };
                     lineItems.Add(item);
                 }
-                Cursor = 0; //by default point to first item
             }
 
             public AlpaItem this[int line]
@@ -315,9 +319,49 @@ namespace AlterLinePictureAproximator
             }
         }
 
+        /// <summary>
+        /// Enforces global background and PMG colors (indices 4 and 5) on an AlpaItem
+        /// </summary>
+        private void EnforceGlobalColors(AlpaItem item)
+        {
+            if (item?.Line0 != null && item.Line0.Length > 5)
+            {
+                item.Line0[4] = globalBackgroundLine0;
+                item.Line0[5] = globalPMGLine0;
+            }
+            if (item?.Line1 != null && item.Line1.Length > 5)
+            {
+                item.Line1[4] = globalBackgroundLine1;
+                item.Line1[5] = globalPMGLine1;
+            }
+        }
+
+        /// <summary>
+        /// Updates global background and PMG colors from a source item
+        /// </summary>
+        private void UpdateGlobalColorsFromItem(AlpaItem item)
+        {
+            if (item?.Line0 != null && item.Line0.Length > 5)
+            {
+                globalBackgroundLine0 = item.Line0[4];
+                globalPMGLine0 = item.Line0[5];
+            }
+            if (item?.Line1 != null && item.Line1.Length > 5)
+            {
+                globalBackgroundLine1 = item.Line1[4];
+                globalPMGLine1 = item.Line1[5];
+            }
+        }
+
         private void PopulateDefaultPalette(AlpaCollection alpaCollection)
         {
             if (alpaCollection == null) return;
+
+            // Initialize global colors from defaults
+            globalBackgroundLine0 = line0default[4];
+            globalBackgroundLine1 = line1default[4];
+            globalPMGLine0 = line0default[5];
+            globalPMGLine1 = line1default[5];
 
             // Populate AlpaCollection with default palette
             for (int y = 0; y < alpaCollection.Height; y++)
@@ -329,6 +373,8 @@ namespace AlterLinePictureAproximator
                     item.Line0[c] = (byte)line0default[c];
                     item.Line1[c] = (byte)line1default[c];
                 }
+                // Enforce global colors
+                EnforceGlobalColors(item);
                 // Recalculate customColors for the item after setting values
                 item.RecalculateCustomColors(atariPalRgb, comboBoxAverMethod.SelectedIndex, COLORS, false);
             }
@@ -669,7 +715,10 @@ namespace AlterLinePictureAproximator
                 Color[,] displayCline1;
                 int[,,] displayIgnoreMatrix;
 
-                if (myAlpaCollection == null || myAlpaCollection.Cursor < 0 || myAlpaCollection.Cursor >= myAlpaCollection.Height)
+                // TESTING: Display palette for block 0 (line 0)
+                int displayLine = 0;
+                
+                if (myAlpaCollection == null || displayLine >= myAlpaCollection.Height)
                 {
                     // Fallback: create a temporary item with default colors
                     var tempItem = new AlpaItem
@@ -688,7 +737,7 @@ namespace AlterLinePictureAproximator
                 }
                 else
                 {
-                    var item = myAlpaCollection[myAlpaCollection.Cursor];
+                    var item = myAlpaCollection[displayLine];
                     if (item.BlendedColors == null || item.Cline0 == null || item.Cline1 == null || item.ColorIgnoreMatrix == null)
                     {
                         // Recalculate if not initialized
@@ -805,6 +854,112 @@ namespace AlterLinePictureAproximator
             data.Fill(-1);
         }
 
+        //Calculate diff for a specific 4-line block (one character row) - used by per-block genetic algorithm
+        private long CalcDiffForBlock(int blockIdx, int distanceMethod)
+        {
+            var distanceFn = SelectDistance(distanceMethod);
+            int charsPerLine = CharsPerLine;
+            long blockDiff = 0;
+            
+            // Get dimensions to check bounds
+            int width = srcChannelMatrix.GetLength(0);
+            int height = srcChannelMatrix.GetLength(1);
+            
+            // Block corresponds to character row y = blockIdx
+            int y = blockIdx;
+            
+            // Process each character in this row
+            for (int x = 0; x < charsPerLine; x++)
+            {
+                long charDiff0 = 0;
+                long charDiff1 = 0;
+                
+                // Temporary storage for character data
+                int[,,,] bitmapCharDataIndexed = new int[4, 4, 2, 2];
+                
+                // Process both inverse modes (z = 0: normal, z = 1: inverse)
+                for (int z = 0; z < 2; z++)
+                {
+                    if (z == 0) { charDiff0 = 0; } else { charDiff1 = 0; }
+                    
+                    // Process all 4 rows (cy) in this character block
+                    for (int cy = 0; cy < 4; cy++)
+                    {
+                        int lineIndex = y * 4 + cy;
+                        int pixelY = y * 4 + cy;
+                        
+                        // Skip if this line is out of bounds
+                        if (pixelY >= height) continue;
+                        
+                        // Get colors for this line from AlpaCollection
+                        Color[,] lineBlendedColors = null;
+                        int[,,] lineIgnoreMatrix = null;
+                        if (myAlpaCollection != null && lineIndex < myAlpaCollection.Height)
+                        {
+                            var item = myAlpaCollection[lineIndex];
+                            if (item.BlendedColors == null)
+                            {
+                                item.RecalculateCustomColors(atariPalRgb, comboBoxAverMethod.SelectedIndex, COLORS, checkBoxHepa.Checked);
+                            }
+                            lineBlendedColors = item.BlendedColors;
+                            lineIgnoreMatrix = item.ColorIgnoreMatrix;
+                        }
+                        if (lineBlendedColors == null) continue;
+                        
+                        // Calculate diff for PMG layer (t=0) and normal layer (t=1)
+                        long sum0 = 0;
+                        for (int cx = 0; cx < 4; cx++)
+                        {
+                            int pixelX = x * 4 + cx;
+                            if (pixelX >= width) continue; // Skip if x is out of bounds
+                            
+                            long distance;
+                            int index;
+                            if (UseReducedSource)
+                            {
+                                (distance, index) = FindCustomClosest2Reduced(bit8map[pixelX, pixelY], distanceFn, z, 0, lineBlendedColors, lineIgnoreMatrix);
+                            }
+                            else
+                            {
+                                (distance, index) = FindCustomClosest2(palette8[bit8map[pixelX, pixelY]], distanceFn, z, 0, lineBlendedColors, lineIgnoreMatrix);
+                            }
+                            sum0 += distance * distance;
+                        }
+                        
+                        long sum1 = 0;
+                        for (int cx = 0; cx < 4; cx++)
+                        {
+                            int pixelX = x * 4 + cx;
+                            if (pixelX >= width) continue; // Skip if x is out of bounds
+                            
+                            long distance;
+                            int index;
+                            if (UseReducedSource)
+                            {
+                                (distance, index) = FindCustomClosest2Reduced(bit8map[pixelX, pixelY], distanceFn, z, 1, lineBlendedColors, lineIgnoreMatrix);
+                            }
+                            else
+                            {
+                                (distance, index) = FindCustomClosest2(palette8[bit8map[pixelX, pixelY]], distanceFn, z, 1, lineBlendedColors, lineIgnoreMatrix);
+                            }
+                            sum1 += distance * distance;
+                        }
+                        
+                        int bestT = (sum0 > sum1) ? 1 : 0;
+                        if (z == 0)
+                            charDiff0 += (bestT == 0 ? sum0 : sum1);
+                        else
+                            charDiff1 += (bestT == 0 ? sum0 : sum1);
+                    }
+                }
+                
+                // Choose best inverse mode for this character
+                blockDiff += Math.Min(charDiff0, charDiff1);
+            }
+            
+            return blockDiff;
+        }
+
         //new calcdiff for 8bit palette-reduced picture
         private (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) CalcDiff2(int distanceMethod, bool doDither)
         {
@@ -821,8 +976,8 @@ namespace AlterLinePictureAproximator
             long charDiff1 = 0;
             long totalDiff = 0;
 
-            InitializeArrayToMinusOne(customP8Match);
-            Array.Clear(customP8MatchDist);
+            //InitializeArrayToMinusOne(customP8Match);
+            //Array.Clear(customP8MatchDist);
             int[,,,] bitmapCharDataIndexed = new int[4, 4, 2, 2];
             int[,] pmgCharData = new int[4, 2];
 
@@ -837,6 +992,7 @@ namespace AlterLinePictureAproximator
                             // Get customColors from AlpaCollection based on line
                             int lineIndex = y * 4 + cy;
                             Color[,] lineBlendedColors = null;
+                            int[,,] lineIgnoreMatrix = null;
                             if (myAlpaCollection != null && lineIndex < myAlpaCollection.Height)
                             {
                                 var item = myAlpaCollection[lineIndex];
@@ -845,6 +1001,7 @@ namespace AlterLinePictureAproximator
                                     item.RecalculateCustomColors(atariPalRgb, comboBoxAverMethod.SelectedIndex, COLORS, checkBoxHepa.Checked);
                                 }
                                 lineBlendedColors = item.BlendedColors;
+                                lineIgnoreMatrix = item.ColorIgnoreMatrix;
                             }
                             if (lineBlendedColors == null) continue; // Skip if no customColors available
 
@@ -858,15 +1015,15 @@ namespace AlterLinePictureAproximator
                                 {
                                     int pixelIndex = (x * 4 + cx + (y * 4 + cy) * TargetWidth) * 3;
                                     Color desiredColor = Color.FromArgb(bitmapPixelsDithered[pixelIndex + 2], bitmapPixelsDithered[pixelIndex + 1], bitmapPixelsDithered[pixelIndex]);
-                                    (distance, index) = FindCustomClosest2(desiredColor, distanceFn, z, 0, lineBlendedColors);
+                                    (distance, index) = FindCustomClosest2(desiredColor, distanceFn, z, 0, lineBlendedColors, lineIgnoreMatrix);
                                 }
                                 else if (UseReducedSource)
                                 {
-                                    (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceFn, z, 0, lineBlendedColors);
+                                    (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceFn, z, 0, lineBlendedColors, lineIgnoreMatrix);
                                 }
                                 else
                                 {
-                                    (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceFn, z, 0, lineBlendedColors);
+                                    (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceFn, z, 0, lineBlendedColors, lineIgnoreMatrix);
                                 }
                                 sum0 += distance * distance;
                                 bitmapCharDataIndexed[cx, cy, z, 0] = index;
@@ -881,15 +1038,15 @@ namespace AlterLinePictureAproximator
                                 {
                                     int pixelIndex = (x * 4 + cx + (y * 4 + cy) * TargetWidth) * 3;
                                     Color desiredColor = Color.FromArgb(bitmapPixelsDithered[pixelIndex + 2], bitmapPixelsDithered[pixelIndex + 1], bitmapPixelsDithered[pixelIndex]);
-                                    (distance, index) = FindCustomClosest2(desiredColor, distanceFn, z, 1, lineBlendedColors);
+                                    (distance, index) = FindCustomClosest2(desiredColor, distanceFn, z, 1, lineBlendedColors, lineIgnoreMatrix);
                                 }
                                 else if (UseReducedSource)
                                 {
-                                    (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceFn, z, 1, lineBlendedColors);
+                                    (distance, index) = FindCustomClosest2Reduced(bit8map[x * 4 + cx, y * 4 + cy], distanceFn, z, 1, lineBlendedColors, lineIgnoreMatrix);
                                 }
                                 else
                                 {
-                                    (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceFn, z, 1, lineBlendedColors);
+                                    (distance, index) = FindCustomClosest2(palette8[bit8map[x * 4 + cx, y * 4 + cy]], distanceFn, z, 1, lineBlendedColors, lineIgnoreMatrix);
                                 }
                                 sum1 += distance * distance;
                                 bitmapCharDataIndexed[cx, cy, z, 1] = index;
@@ -937,8 +1094,8 @@ namespace AlterLinePictureAproximator
             long totalDiff = 0;
             long[,,] pmgDiff = new long[4, 2, 2];
 
-            InitializeArrayToMinusOne(customP8Match);
-            Array.Clear(customP8MatchDist);
+            //InitializeArrayToMinusOne(customP8Match);
+            //Array.Clear(customP8MatchDist);
             //int[,,,] bitmapCharDataIndexed = new int[4, 4, 2, 2];
             //int[,] pmgCharData = new int[4, 2];
 
@@ -958,6 +1115,7 @@ namespace AlterLinePictureAproximator
             {
                 // Get customColors from AlpaCollection based on line (y is the line index in srcChannelMatrix)
                 Color[,] lineCustomColors = null;
+                int[,,] lineIgnoreMatrix = null;
                 if (myAlpaCollection != null && y < myAlpaCollection.Height)
                 {
                     var item = myAlpaCollection[y];
@@ -966,6 +1124,7 @@ namespace AlterLinePictureAproximator
                         item.RecalculateCustomColors(atariPalRgb, comboBoxAverMethod.SelectedIndex, COLORS, checkBoxHepa.Checked);
                     }
                     lineCustomColors = item.BlendedColors;
+                    lineIgnoreMatrix = item.ColorIgnoreMatrix;
                 }
                 if (lineCustomColors == null) continue; // Skip if no customColors available
 
@@ -978,7 +1137,7 @@ namespace AlterLinePictureAproximator
                         errorStorage[x, y % 2, i] = 0;
                     }
 
-                    var (distance, color, errorNew) = FindCustomClosest3(palette8[bit8map[x, y]], error, distanceFn, lineCustomColors);
+                    var (distance, color, errorNew) = FindCustomClosest3(palette8[bit8map[x, y]], error, distanceFn, lineCustomColors, lineIgnoreMatrix);
                     bitmapPixelsDithered[pixelIndex] = color.B;
                     bitmapPixelsDithered[pixelIndex + 1] = color.G;
                     bitmapPixelsDithered[pixelIndex + 2] = color.R;
@@ -1058,8 +1217,8 @@ namespace AlterLinePictureAproximator
             int pixelIndexM = 0;
             for (int y = 0; y < height; y++)
             {
-                // Get customColors from AlpaCollection based on line (y is pixel row, line = y / 2)
-                int lineIndex = y / 2;
+                // Get customColors from AlpaCollection based on line (y is the line index directly)
+                int lineIndex = y;
                 Color[,] lineCustomColors = null;
                 Color[,] cline0 = null;
                 Color[,] cline1 = null;
@@ -1073,6 +1232,7 @@ namespace AlterLinePictureAproximator
                     lineCustomColors = item.BlendedColors;
                     cline0 = item.Cline0;
                     cline1 = item.Cline1;
+                    
                 }
                 if (lineCustomColors == null) continue; // Skip if no customColors available
 
@@ -1084,7 +1244,6 @@ namespace AlterLinePictureAproximator
                     dtPixels[pixelIndex + 2] = color.R;
 
                     color = cline0[bitmapDataIndexed[x, y] / COLORS, charMask[x / 4, y / 4]];
-
                     duPixels[pixelIndexU] = color.B;
                     duPixels[pixelIndexU + 1] = color.G;
                     duPixels[pixelIndexU + 2] = color.R;
@@ -1158,18 +1317,19 @@ namespace AlterLinePictureAproximator
         /// <param name="pmg"></param>
         /// <param name="customColors"></param>
         /// <returns></returns>
-        private (long distance, int index) FindCustomClosest2Reduced(int p8index, Func<Color, Color, long> distanceFn, int inverse, int pmg, Color[,] customColors)
+        private (long distance, int index) FindCustomClosest2Reduced(int p8index, Func<Color, Color, long> distanceFn, int inverse, int pmg, Color[,] customColors, int[,,] ignoreMatrix = null)
         {
             long mindist = long.MaxValue;
             int index = 0;
 
-            int indexStored = customP8Match[p8index, inverse, pmg];
-            if (indexStored == -1)
-            {
-                var item = myAlpaCollection[myAlpaCollection.Cursor];
+            //int indexStored = customP8Match[p8index, inverse, pmg];
+            /*if (indexStored == -1)
+            {*/
+                // Use the item from the line being evaluated (passed via lineBlendedColors parameter)
                 for (byte i = 0; i < COLORS * COLORS; i++)
                 {
-                    if (item.ColorIgnoreMatrix[i, inverse, pmg] != 0)
+                    // Check ignore matrix if provided (HEPA filter)
+                    if (ignoreMatrix == null || ignoreMatrix[i, inverse, pmg] != 0)
                     {
                         long dist = distanceFn(palette8[p8index], customColors[i, inverse]);
                         if (dist < mindist)
@@ -1179,12 +1339,14 @@ namespace AlterLinePictureAproximator
                         }
                     }
                 }
-                customP8Match[p8index, inverse, pmg] = (byte)(index);
-                customP8MatchDist[p8index, inverse, pmg] = mindist;
+                //customP8Match[p8index, inverse, pmg] = (byte)(index);
+                //customP8MatchDist[p8index, inverse, pmg] = mindist;
                 return (distance: mindist, index: index);
-            }
+            /*}
+            
             else
                 return (distance: customP8MatchDist[p8index, inverse, pmg], index: indexStored);
+            */
         }
 
 
@@ -1196,18 +1358,19 @@ namespace AlterLinePictureAproximator
         /// <param name="distanceFn"></param>
         /// <param name="customColors"></param>
         /// <returns></returns>
-        private (long distance, Color color, int[] error) FindCustomClosest3(Color desiredColor, int[] error, Func<Color, Color, long> distanceFn, Color[,] customColors)
+        private (long distance, Color color, int[] error) FindCustomClosest3(Color desiredColor, int[] error, Func<Color, Color, long> distanceFn, Color[,] customColors, int[,,] ignoreMatrix = null)
         {
             long mindist = long.MaxValue;
             Color color = Color.Magenta;
 
             int[] rgbWithError = { desiredColor.R + error[0], desiredColor.G + error[1], desiredColor.B + error[2] };
             Color colorWithError = Color.FromArgb(Clamp256(rgbWithError[0]), Clamp256(rgbWithError[1]), Clamp256(rgbWithError[2]));
-            var item = myAlpaCollection[myAlpaCollection.Cursor];
+            // Use the lineBlendedColors passed as parameter
             for (byte i = 0; i < COLORS * COLORS; i++)
             {
                 for (int inverse = 0; inverse < 2; inverse++)
-                    if (item.ColorIgnoreMatrix[i, inverse, 2] != 0) //[x,x,2] means pmg colors allowed for each pixel
+                    // Check ignore matrix if provided (HEPA filter), [x,x,2] means pmg colors allowed for each pixel
+                    if (ignoreMatrix == null || ignoreMatrix[i, inverse, 2] != 0)
                     {
                         long dist = distanceFn(colorWithError, customColors[i, inverse]);
                         if (dist < mindist)
@@ -1234,17 +1397,18 @@ namespace AlterLinePictureAproximator
         /// <param name="pmg"></param>
         /// <param name="customColors"></param>
         /// <returns></returns>
-        private (long distance, int index) FindCustomClosest2(Color color, Func<Color, Color, long> distanceFn, int inverse, int pmg, Color[,] customColors)
+        private (long distance, int index) FindCustomClosest2(Color color, Func<Color, Color, long> distanceFn, int inverse, int pmg, Color[,] customColors, int[,,] ignoreMatrix = null)
         {
             long mindist = long.MaxValue;
             int index = 0;
             /*int index = customP24Match[color.R, color.G, color.B, inverse, pmg] - 1;
             if (index < 0)
             {*/
-            var item = myAlpaCollection[myAlpaCollection.Cursor];
+            // Use the lineBlendedColors passed as parameter
             for (byte i = 0; i < COLORS * COLORS; i++)
             {
-                if (item.ColorIgnoreMatrix[i, inverse, pmg] != 0)
+                // Check ignore matrix if provided (HEPA filter)
+                if (ignoreMatrix == null || ignoreMatrix[i, inverse, pmg] != 0)
                 {
                     long dist = distanceFn(color, customColors[i, inverse]);
                     if (dist < mindist)
@@ -1363,12 +1527,16 @@ namespace AlterLinePictureAproximator
             // Force recalculation of HEPA matrix
             currentHepaLumaFilter = -1;
 
-            // Invalidate cached colors to force recalculation
-            if (myAlpaCollection != null && myAlpaCollection.Cursor >= 0 && myAlpaCollection.Cursor < myAlpaCollection.Height)
+            // Invalidate cached colors to force recalculation for all lines in range
+            if (myAlpaCollection != null)
             {
-                var item = myAlpaCollection[myAlpaCollection.Cursor];
-                item.BlendedColors = null;
-                item.ColorIgnoreMatrix = null;
+                var (startY, endY) = GetVerticalRange();
+                for (int lineY = startY; lineY <= endY && lineY < myAlpaCollection.Height; lineY++)
+                {
+                    var item = myAlpaCollection[lineY];
+                    item.BlendedColors = null;
+                    item.ColorIgnoreMatrix = null;
+                }
             }
 
             if (checkBoxAutoGenerate.Checked)
@@ -1382,12 +1550,16 @@ namespace AlterLinePictureAproximator
             // Force recalculation of HEPA matrix
             currentHepaChromaFilter = -1;
 
-            // Invalidate cached colors to force recalculation
-            if (myAlpaCollection != null && myAlpaCollection.Cursor >= 0 && myAlpaCollection.Cursor < myAlpaCollection.Height)
+            // Invalidate cached colors to force recalculation for all lines in range
+            if (myAlpaCollection != null)
             {
-                var item = myAlpaCollection[myAlpaCollection.Cursor];
-                item.BlendedColors = null;
-                item.ColorIgnoreMatrix = null;
+                var (startY, endY) = GetVerticalRange();
+                for (int lineY = startY; lineY <= endY && lineY < myAlpaCollection.Height; lineY++)
+                {
+                    var item = myAlpaCollection[lineY];
+                    item.BlendedColors = null;
+                    item.ColorIgnoreMatrix = null;
+                }
             }
 
             if (checkBoxAutoGenerate.Checked)
@@ -1445,6 +1617,11 @@ namespace AlterLinePictureAproximator
             }
             pictureBoxSource.Size = pictureBoxSource.Image.Size;
             labelOutputSize.Text = $"Output: {TargetWidth * 2} * {srcHeight} ({srcHeightChar})";
+            
+            // Recreate AlpaCollection with new height after ResizeSource updates srcHeight
+            myAlpaCollection = new AlpaCollection(srcHeight / 2, COLORS + 1);
+            PopulateDefaultPalette(myAlpaCollection);
+            
             // Reset controls to default values
             trackBarGamma.Value = 10;
             trackBarLightness.Value = 0;
@@ -1459,74 +1636,106 @@ namespace AlterLinePictureAproximator
 
         private void CentauriInit(int population)
         {
-            alpaItems.Clear();
-            AlpaItem zeroItem = new();
-            Random rand = new Random();
+            var (startY, endY) = GetVerticalRange();
+            int startBlock = startY / 4;
+            int endBlock = endY / 4;
 
-            var item = myAlpaCollection[myAlpaCollection.Cursor];
-            for (int i = 0; i < population; i++)
+            
+            // Initialize populations for each 4-line block in the range
+            for (int blockIdx = startBlock; blockIdx <= endBlock; blockIdx++)
             {
-                if (i > 0) //keep 0.iteration equal to colors currently set
+                int blockStartLine = blockIdx * 4;
+                int blockEndLine = Math.Min(blockStartLine + 3, myAlpaCollection.Height - 1);
+                
+                List<AlpaItem> blockItems = new List<AlpaItem>();
+                AlpaItem zeroItem = new();
+                Random blockRand = new Random(blockIdx); // Block-specific seed
+
+                for (int i = 0; i < population; i++)
                 {
-                    for (int j = 0; j <= COLORS; j++)
+                    // Apply same palette to all 4 lines in this block
+                    for (int lineY = blockStartLine; lineY <= blockEndLine; lineY++)
                     {
-                        if (LOCKED_COLORS[j] == 1) { continue; }
-                        item.Line0[j] = (byte)(((byte)rand.Next(255)) & 0xFE);
-                        if (JOINED_COLORS[j] == 1)
-                            item.Line1[j] = item.Line0[j]; //common color
-                        else
-                            item.Line1[j] = (byte)(((byte)rand.Next(255)) & 0xFE);
+                        var item = myAlpaCollection[lineY];
+                        
+                        if (i > 0) //keep 0.iteration equal to colors currently set
+                        {
+                            for (int j = 0; j <= COLORS; j++)
+                            {
+                                if (LOCKED_COLORS[j] == 1) { continue; }
+                                
+                                item.Line0[j] = (byte)(((byte)blockRand.Next(255)) & 0xFE);
+                                if (JOINED_COLORS[j] == 1)
+                                    item.Line1[j] = item.Line0[j]; //common color
+                                else
+                                    item.Line1[j] = (byte)(((byte)blockRand.Next(255)) & 0xFE);
+                            }
+                            
+                            // If this is the first line in the block, update global colors from it
+                            if (lineY == blockStartLine)
+                            {
+                                UpdateGlobalColorsFromItem(item);
+                            }
+                        }
+                        
+                        // Enforce global background and PMG colors across all lines
+                        EnforceGlobalColors(item);
+                        item.RecalculateCustomColors(atariPalRgb, comboBoxAverMethod.SelectedIndex, COLORS, checkBoxHepa.Checked);
+                    }
+
+                    // Calculate diff for the ENTIRE IMAGE with this block's palette
+                    // This ensures each block is initialized in the context of the full image
+                    //long totalDiff = CalcDiff2(comboBoxDistance.SelectedIndex, false).totalDiff;
+                    long totalDiff = CalcDiffForBlock(blockIdx, comboBoxDistance.SelectedIndex);
+                    AlpaItem ai = new();
+                    ai.Diff = totalDiff;
+                    ai.Ppdiff = (int)(totalDiff / totalPixels);
+                    ai.Line0 = (byte[])myAlpaCollection[blockStartLine].Line0.Clone();
+                    ai.Line1 = (byte[])myAlpaCollection[blockStartLine].Line1.Clone();
+                    
+                    if (i == 0)
+                    {
+                        ai.Zero = 1;    //index zero (manual/imported)
+                        zeroItem = ai.ShallowCopy();
+                    }
+                    else
+                    {
+                        blockItems.Add(ai);
                     }
                 }
-                CreatePal(comboBoxAverMethod.SelectedIndex, true);
-                var (startY, endY) = GetVerticalRange();
-                UpdateAlpaCollectionForRange(myAlpaCollection, startY, endY);
-
-                long totalDiff;
-                int[,] bitmapDataIndexed;
-                int[,] charMask;
-                int[,] pmgMask;
-                //if (i == 0)
-                // if (Dither)
-                //   CreateIdealDitheredSolution(comboBoxDistance.SelectedIndex, comboBoxDither.SelectedIndex, (float)numericUpDownDitherStrength.Value / 10f);
-
-                (totalDiff, bitmapDataIndexed, charMask, pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, false);
-
-                //if (i == 0)
-                //{
-                // if (Dither)
-                //    (totalDiff, bitmapDataIndexed, charMask, pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, Dither);
-                //Redraw(bitmapDataIndexed, charMask, pmgMask);
-                //}
-                AlpaItem ai = new();
-                ai.Diff = totalDiff;
-                ai.Ppdiff = (int)(totalDiff / totalPixels);
-                ai.Line0 = (byte[])item.Line0.Clone();
-                ai.Line1 = (byte[])item.Line1.Clone();
-                if (i == 0)
+                    
+                List<AlpaItem> sorted = blockItems.OrderBy(d => d.Diff).ToList();
+                sorted.Insert(0, zeroItem);
+                if (sorted.Count > population / 4)
+                    sorted.RemoveRange(population / 4 - 1, sorted.Count - ((population / 4) - 1));
+                    
+                charBlockPopulations[blockIdx] = sorted;
+                
+                // Apply the best candidate (index 0) to this block in myAlpaCollection
+                // This ensures myAlpaCollection is in a consistent state
+                var bestCandidate = sorted[0];
+                for (int lineY = blockStartLine; lineY <= blockEndLine; lineY++)
                 {
-                    ai.Zero = 1;    //index zero (manual/imported)
-                    zeroItem = ai.ShallowCopy();
-                }
-                else
-                {
-                    alpaItems.Add(ai);
+                    var item = myAlpaCollection[lineY];
+                    Array.Copy(bestCandidate.Line0, item.Line0, item.Line0.Length);
+                    Array.Copy(bestCandidate.Line1, item.Line1, item.Line1.Length);
+                    item.BlendedColors = null;
+                    item.ColorIgnoreMatrix = null;
+                    item.RecalculateCustomColors(atariPalRgb, comboBoxAverMethod.SelectedIndex, COLORS, checkBoxHepa.Checked);
                 }
             }
-            List<AlpaItem> sorted = alpaItems.OrderBy(d => d.Diff).ToList();
-            sorted.Insert(0, zeroItem);
-            if (sorted.Count > population / 4)
-                sorted.RemoveRange(population / 4 - 1, sorted.Count - ((population / 4) - 1));
-            alpaItems = sorted;
-            ListPopulation(); // fill up the listview
-            listViewPopulation.Items[0].Selected = true;
+            
+            ListPopulation();
+            RedrawAlpaCollection();  // Updates pictureBoxPaletteCollection with initial state
+            if (listViewPopulation.Items.Count > 0)
+                listViewPopulation.Items[0].Selected = true;
         }
 
         private void Centauri(int generations, int population)
         {
-            var item = myAlpaCollection[myAlpaCollection.Cursor];
             progressBarAI.Value = 0;
             progressBarAI.Maximum = generations;
+            
             //fix population not dividable by 4
             if (population % 4 != 0)
             {
@@ -1534,67 +1743,130 @@ namespace AlterLinePictureAproximator
                 numericUpDownPopulation.Value = population;
             }
 
-            //fix change of population - generate randoms if population extended
-            while (alpaItems.Count < population / 4)
+            var (startY, endY) = GetVerticalRange();
+            int startBlock = startY / 4;
+            int endBlock = endY / 4;
+            
+            // Ensure all 4-line blocks have populations initialized
+            for (int blockIdx = startBlock; blockIdx <= endBlock; blockIdx++)
             {
-                for (int j = 0; j <= COLORS; j++)
+                if (!charBlockPopulations.ContainsKey(blockIdx))
                 {
-                    if (LOCKED_COLORS[j] == 1) { continue; }
-                    item.Line0[j] = (byte)(((byte)rand.Next(255)) & 0xFE);
-                    if (JOINED_COLORS[j] == 1)
-                        item.Line1[j] = item.Line0[j]; //common color
-                    else
-                        item.Line1[j] = (byte)(((byte)rand.Next(255)) & 0xFE);
+                    charBlockPopulations[blockIdx] = new List<AlpaItem>();
                 }
+                
+                // Fix change of population - generate randoms if population extended
+                int blockStartLine = blockIdx * 4;
+                int blockEndLine = Math.Min(blockStartLine + 3, myAlpaCollection.Height - 1);
+                
+                while (charBlockPopulations[blockIdx].Count < population / 4)
+                {
+                    for (int lineY = blockStartLine; lineY <= blockEndLine; lineY++)
+                    {
+                        var item = myAlpaCollection[lineY];
+                        for (int j = 0; j <= COLORS; j++)
+                        {
+                            if (LOCKED_COLORS[j] == 1) { continue; }
+                            
+                            item.Line0[j] = (byte)(((byte)rand.Next(255)) & 0xFE);
+                            if (JOINED_COLORS[j] == 1)
+                                item.Line1[j] = item.Line0[j]; //common color
+                            else
+                                item.Line1[j] = (byte)(((byte)rand.Next(255)) & 0xFE);
+                        }
+                        
+                        // If this is the first line in the block, update global colors from it
+                        if (lineY == blockStartLine)
+                        {
+                            UpdateGlobalColorsFromItem(item);
+                        }
+                        
+                        // Enforce global background and PMG colors across all lines
+                        EnforceGlobalColors(item);
+                        item.RecalculateCustomColors(atariPalRgb, comboBoxAverMethod.SelectedIndex, COLORS, checkBoxHepa.Checked);
+                    }
 
-                AlpaItem ai = new AlpaItem();
-                ai.Diff = long.MaxValue;
-                ai.Ppdiff = int.MaxValue;
-                ai.Line0 = (byte[])item.Line0.Clone();
-                ai.Line1 = (byte[])item.Line1.Clone();
-                alpaItems.Add(ai);
+                    AlpaItem ai = new AlpaItem();
+                    ai.Diff = long.MaxValue;
+                    ai.Ppdiff = int.MaxValue;
+                    ai.Line0 = (byte[])myAlpaCollection[blockStartLine].Line0.Clone();
+                    ai.Line1 = (byte[])myAlpaCollection[blockStartLine].Line1.Clone();
+                    charBlockPopulations[blockIdx].Add(ai);
+                }
             }
 
-            long bestDiff = long.MaxValue;
-            //solutions.Clear(); //clear solutions
-            //solutionsKeyUsed = 0;
-            for (int i = 0; i < generations; i++)
+            long bestTotalDiff = long.MaxValue;
+            
+            for (int gen = 0; gen < generations; gen++)
             {
-                CentauriGeneration(population);
-                //labelSolutions.Text = $"Solutions:{solutions.Count}, tries:{((i+1)*population)}, keysUsed:{solutionsKeyUsed}";
-                Array.Copy(alpaItems[0].Line0, item.Line0, item.Line0.Length);
-                Array.Copy(alpaItems[0].Line1, item.Line1, item.Line1.Length);
-                //line0 = alpaItems[0].line0;
-                //line1 = alpaItems[0].line1;
-                labelDiff.Text = $"Diff: {(int)alpaItems[0].Ppdiff}";
-
-                // Update AlpaCollection when divider is unchecked to sync with global line0/line1
-                //if (myAlpaCollection != null && !checkBoxDividerEnabled.Checked)
-                //{
-                    var (startY, endY) = GetVerticalRange();
-                    UpdateAlpaCollectionForRange(myAlpaCollection, startY, endY);
-                //}
-
-                if (checkBoxAutoUpdate.Checked && (bestDiff > alpaItems[0].Ppdiff)) //show progress
+                // Evolve each 4-line block independently
+                for (int blockIdx = startBlock; blockIdx <= endBlock; blockIdx++)
                 {
-                    bestDiff = alpaItems[0].Ppdiff;
-                    CreatePal(comboBoxAverMethod.SelectedIndex, false);
+                    CentauriGenerationForBlock(blockIdx, population);
+                    
+                    // Apply best solution for this block to its 4 lines
+                    int blockStartLine = blockIdx * 4;
+                    int blockEndLine = Math.Min(blockStartLine + 3, myAlpaCollection.Height - 1);
+                    var bestCandidate = charBlockPopulations[blockIdx][0];
+                    
+                    // Update global colors from best candidate
+                    UpdateGlobalColorsFromItem(bestCandidate);
+                    
+                    for (int lineY = blockStartLine; lineY <= blockEndLine; lineY++)
+                    {
+                        var item = myAlpaCollection[lineY];
+                        Array.Copy(bestCandidate.Line0, item.Line0, item.Line0.Length);
+                        Array.Copy(bestCandidate.Line1, item.Line1, item.Line1.Length);
+                        // Enforce global background and PMG colors
+                        EnforceGlobalColors(item);
+                        item.BlendedColors = null;
+                        item.ColorIgnoreMatrix = null;
+                        item.RecalculateCustomColors(atariPalRgb, comboBoxAverMethod.SelectedIndex, COLORS, checkBoxHepa.Checked);
+                    }
+                    
+                    // Apply global colors to ALL lines in the entire image
+                    int currentBlockStartLine = blockStartLine;
+                    int currentBlockEndLine = blockEndLine;
+                    for (int lineY = 0; lineY < myAlpaCollection.Height; lineY++)
+                    {
+                        // Skip the lines in the current block, they were already updated
+                        if (lineY >= currentBlockStartLine && lineY <= currentBlockEndLine) continue;
+                        
+                        var item = myAlpaCollection[lineY];
+                        EnforceGlobalColors(item);
+                        item.BlendedColors = null;
+                        item.ColorIgnoreMatrix = null;
+                        item.RecalculateCustomColors(atariPalRgb, comboBoxAverMethod.SelectedIndex, COLORS, checkBoxHepa.Checked);
+                    }
+                }
+
+                // Calculate total diff across all blocks
+                (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, false);
+                labelDiff.Text = $"Diff: {(int)(totalDiff / totalPixels)}";
+
+                if (checkBoxAutoUpdate.Checked && (bestTotalDiff > totalDiff)) //show progress
+                {
+                    bestTotalDiff = totalDiff;
+                    CreatePal(comboBoxAverMethod.SelectedIndex, false);  // Updates pictureBoxPalette
+                    RedrawAlpaCollection();  // Updates pictureBoxPaletteCollection
                     if (Dither)
                         CreateIdealDitheredSolution(comboBoxDistance.SelectedIndex, comboBoxDither.SelectedIndex, (float)numericUpDownDitherStrength.Value / 10f);
-                    (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, Dither);
+                    (totalDiff, bitmapDataIndexed, charMask, pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, Dither);
                     Redraw(bitmapDataIndexed, charMask, pmgMask);
                 }
                 else
                 {
-                    CreatePal(comboBoxAverMethod.SelectedIndex, true);
-                    //if (checkBoxUseDither.Checked)
-                    //    CreateIdealDitheredSolution(comboBoxDistance.SelectedIndex, comboBoxDither.SelectedIndex, (float)numericUpDownDitherStrength.Value / 10f);
+                    // Update palette displays even when not redrawing full image
+                    CreatePal(comboBoxAverMethod.SelectedIndex, false);
+                    RedrawAlpaCollection();  // Updates pictureBoxPaletteCollection
                 }
-                progressBarAI.Value = i + 1;
-                labelGenerationDone.Text = $"{i + 1}";
+                
+                progressBarAI.Value = gen + 1;
+                labelGenerationDone.Text = $"{gen + 1}";
                 this.Refresh();
             }
-            ListPopulation(); // fill up the listview
+            
+            ListPopulation();
 
             CreatePal(comboBoxAverMethod.SelectedIndex, false);
             if (Dither)
@@ -1606,52 +1878,86 @@ namespace AlterLinePictureAproximator
         private void ListPopulation()
         {
             listViewPopulation.Items.Clear();
-            for (int i = 0; i < alpaItems.Count; i++)
+            
+            // TESTING: Only show block 0's candidates
+            int blockIdx = 0;
+            if (!charBlockPopulations.ContainsKey(blockIdx))
+                return;
+            
+            var blockItems = charBlockPopulations[blockIdx];
+            
+            for (int i = 0; i < blockItems.Count; i++)
             {
-                var lvi = listViewPopulation.Items.Add($"{i}: {((int)alpaItems[i].Ppdiff).ToString()}");
-                if (alpaItems[i].Zero == 1)
+                var candidate = blockItems[i];
+                var lvi = listViewPopulation.Items.Add($"B0-{i}: {candidate.Ppdiff}");
+                if (candidate.Zero == 1)
                     lvi.Font = new Font(lvi.Font, FontStyle.Bold);
             }
         }
 
-        private void CentauriGeneration(int population)
+        private void CentauriGenerationForBlock(int blockIdx, int population)
         {
             int averageMethod = comboBoxAverMethod.SelectedIndex;
             int distanceMethod = comboBoxDistance.SelectedIndex;
-            bool useDither = checkBoxUseDither.Checked;
-            int ditherMethod = comboBoxDither.SelectedIndex;
 
-            var item = myAlpaCollection[myAlpaCollection.Cursor];
+            int blockStartLine = blockIdx * 4;
+            int blockEndLine = Math.Min(blockStartLine + 3, myAlpaCollection.Height - 1);
+            var blockItems = charBlockPopulations[blockIdx];
 
+            // Generate mutations from the best candidates
+            int sourceCount = Math.Min(blockItems.Count, population / 4);
+            
             for (int j = 0; j < 4; j++)
-                for (int i = 0; i < population / 4; i++)
+                for (int i = 0; i < sourceCount; i++)
                 {
                     AlpaItem ai = new AlpaItem();
-                    Mutate(alpaItems[i].Line0, alpaItems[i].Line1, ai);
+                    Mutate(blockItems[i].Line0, blockItems[i].Line1, ai);
                     for (int k = 0; k < j; k++)
                         Mutate(ai.Line0, ai.Line1, ai);
-                    Array.Copy(ai.Line0, item.Line0, item.Line0.Length);
-                    Array.Copy(ai.Line1, item.Line1, item.Line1.Length);
                     
-                    // Update the range of lines that will be evaluated by CalcDiff2
-                    // This ensures all lines have the same mutated palette for consistent evaluation
-                    var (startY, endY) = GetVerticalRange();
-                    UpdateAlpaCollectionForRange(myAlpaCollection, startY, endY);
+                    // Update global colors from this candidate (background and PMG)
+                    UpdateGlobalColorsFromItem(ai);
                     
-                    long totalDiff = CalcDiff2(distanceMethod, false).totalDiff;
+                    // Apply this candidate's palette to all 4 lines in this block
+                    for (int lineY = blockStartLine; lineY <= blockEndLine; lineY++)
+                    {
+                        var item = myAlpaCollection[lineY];
+                        Array.Copy(ai.Line0, item.Line0, item.Line0.Length);
+                        Array.Copy(ai.Line1, item.Line1, item.Line1.Length);
+                        // Enforce global background and PMG colors across all lines
+                        EnforceGlobalColors(item);
+                        item.RecalculateCustomColors(atariPalRgb, averageMethod, COLORS, checkBoxHepa.Checked);
+                    }
+                    
+                    // Apply global colors to ALL lines in the entire image
+                    for (int lineY = 0; lineY < myAlpaCollection.Height; lineY++)
+                    {
+                        // Skip the lines in the current block, they were already updated
+                        if (lineY >= blockStartLine && lineY <= blockEndLine) continue;
+                        
+                        var item = myAlpaCollection[lineY];
+                        EnforceGlobalColors(item);
+                        item.BlendedColors = null; // Force recalculation
+                        item.ColorIgnoreMatrix = null;
+                    }
+
+                    // Calculate diff for the ENTIRE IMAGE with this candidate palette for this block
+                    // This ensures the block optimizes in the context of the full image
+                    long totalDiff = CalcDiffForBlock(blockIdx, distanceMethod);
 
                     ai.Diff = totalDiff;
                     ai.Ppdiff = (int)(totalDiff / totalPixels);
-                    alpaItems.Add(ai);
+                    blockItems.Add(ai);
                 }
-            List<AlpaItem> sorted = alpaItems.OrderBy(d => d.Diff).ToList();
-            int amount = alpaItems.Count;
+            
+            // Sort and keep best
+            List<AlpaItem> sorted = blockItems.OrderBy(d => d.Diff).ToList();
             int keepCount = population / 4;
-            if (amount > keepCount)
-                sorted.RemoveRange(keepCount, amount - keepCount);
+            if (sorted.Count > keepCount)
+                sorted.RemoveRange(keepCount, sorted.Count - keepCount);
             sorted = sorted.DistinctBy(d => d.Diff).ToList();
-            alpaItems = sorted;
-
+            
+            charBlockPopulations[blockIdx] = sorted;
         }
 
         private void Mutate(byte[] srcline0, byte[] srcline1, AlpaItem ai)
@@ -1672,6 +1978,7 @@ namespace AlterLinePictureAproximator
             }
             int mutationType = rng.Next(6);
             int colorIndex = rng.Next(COLORS + 1); //choose colorindex to mutate
+            // Skip only locked colors (background and PMG CAN be mutated, they'll just be applied globally)
             while (LOCKED_COLORS[colorIndex] == 1)
                 colorIndex = rng.Next(COLORS + 1);
 
@@ -1706,6 +2013,10 @@ namespace AlterLinePictureAproximator
 
             ai.Line0 = line;
             ai.Line1 = lineSec;
+            
+            // Note: We don't enforce global colors here in mutation
+            // because the mutation might be changing the global colors themselves
+            // They will be enforced when applied to all blocks
         }
 
         private void PictureBoxPalette_MouseDown(object sender, MouseEventArgs e)
@@ -1713,7 +2024,10 @@ namespace AlterLinePictureAproximator
             int[] remap = { 0, 1, 2, 4, 5, 0, 1, 3, 4, 5 };
             int[] joint = { 0, 0, 0, 1, 1, 0, 0, 0, 1, 1 };   //defines which colors are joined(constant) between dlilines
 
-            var item = myAlpaCollection[myAlpaCollection.Cursor];
+            // Edit palette for first line in range
+            var (startY, endY) = GetVerticalRange();
+            int editLine = Math.Max(0, Math.Min(startY, myAlpaCollection.Height - 1));
+            var item = myAlpaCollection[editLine];
 
             if (e.Y > COLORS * 16)
             {
@@ -1753,9 +2067,8 @@ namespace AlterLinePictureAproximator
                 CreatePal(comboBoxAverMethod.SelectedIndex);
 
                 // Update AlpaCollection when divider is unchecked to sync with global line0/line1
-                if (myAlpaCollection != null && !checkBoxDividerEnabled.Checked)
+                if (myAlpaCollection != null)
                 {
-                    var (startY, endY) = GetVerticalRange();
                     UpdateAlpaCollectionForRange(myAlpaCollection, startY, endY);
                 }
 
@@ -1824,8 +2137,41 @@ namespace AlterLinePictureAproximator
                     pointer += 64;  //skip unused 8 chars in 40char mode
             }
 
-            //byte[] colors = new byte[9] { line0[1], line0[4], line0[0], line1[0], line0[2], line1[2], line0[3], line1[3], 0 };
-            var item = myAlpaCollection[myAlpaCollection.Cursor];
+            // Build colors3.dat: background, PMG, then Line0[0..3] and Line1[0..3] for each line
+            int numLines = myAlpaCollection.Height;
+            byte[] colors3 = new byte[2 + 120 * 8];
+            
+            // First two bytes: background and PMG colors (global across all lines)
+            colors3[0] = globalBackgroundLine0;  // Background color
+            colors3[1] = globalPMGLine0;         // PMG color
+            
+            // For each line, export Line0[0..3] and Line1[0..3]
+            int offset = 2;
+            for (int colIdx = 0; colIdx < 8; colIdx++)
+            {
+                for (int lineIdx = 0; lineIdx < 120; lineIdx++)
+                {
+                    if (lineIdx < numLines)
+                    {
+                        var lineItem = myAlpaCollection[lineIdx];
+                        if (colIdx < 4)
+                        {
+                            colors3[offset++] = lineItem.Line0[colIdx]; // Line0[0..3]
+                        }
+                        else
+                        {
+                            colors3[offset++] = lineItem.Line1[colIdx - 4]; // Line1[0..3]
+                        }
+                    }
+                    else
+                        colors3[offset++] = 0;  //if image is shorter, fill the rest with zeros
+                }
+            }
+            
+            // For backward compatibility, also export old format
+            var (startY, endY) = GetVerticalRange();
+            int exportLine = Math.Max(0, Math.Min(startY, myAlpaCollection.Height - 1));
+            var item = myAlpaCollection[exportLine];
             byte[] line0 = item.Line0;
             byte[] line1 = item.Line1;
             byte[] colors = new byte[11] { line0[0], line0[1], line0[2], line0[3], line1[0], line1[1], line1[2], line1[3], line0[4], line0[5], 0 };
@@ -1848,7 +2194,8 @@ namespace AlterLinePictureAproximator
 
             File.WriteAllBytes("vram.dat", vram);
             File.WriteAllBytes("font.fnt", charsets);
-            File.WriteAllBytes("colors2.dat", colors);
+            File.WriteAllBytes("colors2.dat", colors);  // Old format for backward compatibility
+            File.WriteAllBytes("colors3.dat", colors3);  // New format with per-line colors
             File.WriteAllBytes("pmdata.dat", pmdata);
 
             /*
@@ -1913,26 +2260,42 @@ namespace AlterLinePictureAproximator
         {
             if (listViewPopulation.SelectedIndices.Count > 0)
             {
-                int selectedIndex = listViewPopulation.SelectedIndices[0];
-                var item = myAlpaCollection[myAlpaCollection.Cursor];
-                Array.Copy(alpaItems[selectedIndex].Line0, item.Line0, item.Line0.Length);
-                Array.Copy(alpaItems[selectedIndex].Line1, item.Line1, item.Line1.Length);
-
-                // Update AlpaCollection when divider is unchecked to sync with global line0/line1
-                if (myAlpaCollection != null && !checkBoxDividerEnabled.Checked)
+                int candidateIndex = listViewPopulation.SelectedIndices[0];
+                var (startY, endY) = GetVerticalRange();
+                int startBlock = startY / 4;
+                int endBlock = endY / 4;
+                
+                // Apply the selected candidate index from each 4-line block
+                long storedTotalDiff = 0;
+                for (int blockIdx = startBlock; blockIdx <= endBlock; blockIdx++)
                 {
-                    var (startY, endY) = GetVerticalRange();
-                    UpdateAlpaCollectionForRange(myAlpaCollection, startY, endY);
+                    if (charBlockPopulations.ContainsKey(blockIdx) && candidateIndex < charBlockPopulations[blockIdx].Count)
+                    {
+                        var candidate = charBlockPopulations[blockIdx][candidateIndex];
+                        int blockStartLine = blockIdx * 4;
+                        int blockEndLine = Math.Min(blockStartLine + 3, myAlpaCollection.Height - 1);
+                        
+                        // Apply to all 4 lines in this block
+                        for (int lineY = blockStartLine; lineY <= blockEndLine; lineY++)
+                        {
+                            var item = myAlpaCollection[lineY];
+                            Array.Copy(candidate.Line0, item.Line0, item.Line0.Length);
+                            Array.Copy(candidate.Line1, item.Line1, item.Line1.Length);
+                            item.BlendedColors = null;
+                            item.ColorIgnoreMatrix = null;
+                            item.RecalculateCustomColors(atariPalRgb, comboBoxAverMethod.SelectedIndex, COLORS, checkBoxHepa.Checked);
+                        }
+                        storedTotalDiff += candidate.Diff;
+                    }
                 }
 
                 CreatePal(comboBoxAverMethod.SelectedIndex, false);
-                //DoConvert(comboBoxAverMethod.SelectedIndex, comboBoxDistance.SelectedIndex, checkBoxUseDither.Checked, comboBoxDither.SelectedIndex);
-                //MixIt();
+                RedrawAlpaCollection();  // Updates pictureBoxPaletteCollection
                 (long totalDiff, int[,] bitmapDataIndexed, int[,] charMask, int[,] pmgMask) = CalcDiff2(comboBoxDistance.SelectedIndex, Dither);
                 Redraw(bitmapDataIndexed, charMask, pmgMask);
                 
                 // Show both stored and recalculated values for debugging
-                int storedPpdiff = alpaItems[selectedIndex].Ppdiff;
+                int storedPpdiff = (int)(storedTotalDiff / totalPixels);
                 int recalculatedPpdiff = (int)(totalDiff / totalPixels);
                 labelDiff.Text = $"Diff: {recalculatedPpdiff} (stored: {storedPpdiff})";
             }
@@ -2107,51 +2470,28 @@ namespace AlterLinePictureAproximator
 
         private (int startY, int endY) GetVerticalRange()
         {
-            if (!checkBoxDividerEnabled.Checked)
-            {
-                // If divider is not enabled, process the whole image
-                return (0, srcHeight / 2 - 1);
-            }
-
-            int startY = (int)numericUpDownDividerStart.Value;
-            int length = (int)numericUpDownDividerLength.Value;
-            int endY = Math.Min(startY + length - 1, srcHeight / 2 - 1);
-
-            // Ensure startY is within bounds
-            startY = Math.Max(0, Math.Min(startY, srcHeight / 2 - 1));
-
-            return (startY, endY);
+            return (0, srcHeight / 2 - 1);
         }
 
         private void UpdateAlpaCollectionForRange(AlpaCollection collection, int startY, int endY)
         {
             if (collection == null) return;
             if (startY < 0 || startY >= collection.Height) return;
-            var srcItem = collection[collection.Cursor];
-            // When divider is unchecked, update ALL lines with cursor line0/line1 values
-            if (!checkBoxDividerEnabled.Checked)
+            var srcItem = collection[startY];
+            
+            // Update global colors from the source item
+            UpdateGlobalColorsFromItem(srcItem);
+            
+            // Update all lines with current global palette values
+            for (int y = 0; y < collection.Height; y++)
             {
-                // Update all lines with current global palette values
-                for (int y = 0; y < collection.Height; y++)
-                {
-                    var item = collection[y];
-                    Array.Copy(srcItem.Line0, item.Line0, Math.Min(srcItem.Line0.Length, item.Line0.Length));
-                    Array.Copy(srcItem.Line1, item.Line1, Math.Min(srcItem.Line1.Length, item.Line1.Length));
-                    // Recalculate customColors for the item after setting values
-                    item.RecalculateCustomColors(atariPalRgb, comboBoxAverMethod.SelectedIndex, COLORS, checkBoxHepa.Checked);
-                }
-            }
-            else
-            {
-                // Then copy from startY to all subsequent lines until endY
-                for (int y = startY + 1; y <= endY && y < collection.Height; y++)
-                {
-                    var item = collection[y];
-                    Array.Copy(srcItem.Line0, item.Line0, Math.Min(srcItem.Line0.Length, item.Line0.Length));
-                    Array.Copy(srcItem.Line1, item.Line1, Math.Min(srcItem.Line1.Length, item.Line1.Length));
-                    // Recalculate customColors for the item after copying
-                    item.RecalculateCustomColors(atariPalRgb, comboBoxAverMethod.SelectedIndex, COLORS, checkBoxHepa.Checked);
-                }
+                var item = collection[y];
+                Array.Copy(srcItem.Line0, item.Line0, Math.Min(srcItem.Line0.Length, item.Line0.Length));
+                Array.Copy(srcItem.Line1, item.Line1, Math.Min(srcItem.Line1.Length, item.Line1.Length));
+                // Enforce global background and PMG colors
+                EnforceGlobalColors(item);
+                // Recalculate customColors for the item after setting values
+                item.RecalculateCustomColors(atariPalRgb, comboBoxAverMethod.SelectedIndex, COLORS, checkBoxHepa.Checked);
             }
         }
 
@@ -2295,7 +2635,9 @@ namespace AlterLinePictureAproximator
         {
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
-                var item = myAlpaCollection[myAlpaCollection.Cursor];
+                var (startY, endY) = GetVerticalRange();
+                int loadLine = Math.Max(0, Math.Min(startY, myAlpaCollection.Height - 1));
+                var item = myAlpaCollection[loadLine];
                 byte[] data = File.ReadAllBytes(openFileDialog1.FileName);
                 if (data.Length != 11)
                 {
@@ -2317,18 +2659,23 @@ namespace AlterLinePictureAproximator
             pictureBoxSource.Image = ResizeSource();
             pictureBoxSource.Size = pictureBoxSource.Image.Size;
             labelOutputSize.Text = $"Output: {TargetWidth * 2} * {srcHeight} ({srcHeightChar})";
+            
+            // Recreate AlpaCollection with new height after ResizeSource updates srcHeight
+            myAlpaCollection = new AlpaCollection(srcHeight / 2, COLORS + 1);
+            PopulateDefaultPalette(myAlpaCollection);
+            
             ApplyImageAdjustments();
         }
 
         private void NumericUpDownDividerStart_ValueChanged(object sender, EventArgs e)
         {
-            myAlpaCollection.Cursor = checkBoxDividerEnabled.Checked ? (int)numericUpDownDividerStart.Value : 0;
+            // Update the palette display for the new range
             CreatePal(comboBoxAverMethod.SelectedIndex);
         }
 
         private void CheckBoxDividerEnabled_CheckedChanged(object sender, EventArgs e)
         {
-            myAlpaCollection.Cursor = checkBoxDividerEnabled.Checked ? (int)numericUpDownDividerStart.Value : 0;
+            // Update the palette display for the new range
             CreatePal(comboBoxAverMethod.SelectedIndex);
         }
     }
