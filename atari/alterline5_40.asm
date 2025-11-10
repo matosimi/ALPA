@@ -452,6 +452,7 @@ colors	ins 'colors3.dat' ;background, PMG, and then color0,color1,color2,color3 
 ilace	equ *-1
 .print "vram&colors:",vram,"-",*-1
 
+	.align $100
 ingame_dl
 	dta $f0
 	dta $44
